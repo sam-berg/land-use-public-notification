@@ -1,0 +1,604 @@
+﻿<!DOCTYPE HTML />
+<html>
+<head>
+    <meta charset=utf-8>
+    <!--
+     | Copyright 2012 Esri
+     |
+     | Licensed under the Apache License, Version 2.0 (the "License");
+     | you may not use this file except in compliance with the License.
+     | You may obtain a copy of the License at
+     |
+     |    http://www.apache.org/licenses/LICENSE-2.0
+     |
+     | Unless required by applicable law or agreed to in writing, software
+     | distributed under the License is distributed on an "AS IS" BASIS,
+     | WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     | See the License for the specific language governing permissions and
+     | limitations under the License.
+    -->
+    <title>Public Notification</title>
+    <link rel="Stylesheet" type="text/css" href="notication.css" />
+    <link rel="shortcut icon" href="images/Favicon.ico" />
+    <style type="text/css">
+        @import "http://serverapi.arcgisonline.com/jsapi/arcgis/2.8/js/dojo/dijit/themes/claro/claro.css";
+    </style>
+    <script type="text/javascript">
+        var djConfig = {
+            parseOnLoad: true,
+            baseUrl: "./",
+            modulePaths: { "js": "js" }
+        }
+    </script>
+    <script type="text/javascript" src="http://serverapi.arcgisonline.com/jsapi/arcgis/?v=2.8"
+        djconfig="parseOnLoad:true"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/locator.js"></script>
+    <script type="text/javascript" src="js/config.js"></script>
+    <script src="jS/modernizr-2.5.3.js" type="text/javascript"></script>
+    <script type="text/javascript" src="js/baseMapGallery.js"></script>
+    <script type="text/javascript">
+        dojo.require("esri.map");
+        dojo.require("esri.tasks.query");
+        dojo.require("esri.tasks.geometry");
+        dojo.require("dijit.Dialog");
+        dojo.require("dijit.layout.ContentPane");
+        dojo.require("dijit.layout.BorderContainer");
+        dojo.require("dijit.form.Button");
+        dojo.require("dijit.form.ComboBox");
+        dojo.require("dijit.form.CheckBox");
+        dojo.require("dijit.form.TextBox");
+        dojo.require("dojo.data.ItemFileReadStore");
+        dojo.require("esri.tasks.find");
+        dojo.require("dijit.layout.TabContainer");
+        dojo.require("esri.layers.FeatureLayer");
+        dojo.require("dijit.TooltipDialog");
+        dojo.require("js.config");
+
+        var map;                    //ESRI map object
+        var tempBufferLayer = 'tempBufferLayer';        //Graphics layer object for displaying buffered region
+        var queryGraphicLayer = 'queryGraphicLayer';    //Graphics layer object for displaying queried features
+        var tempGPSLayer = 'tempGPSLayer';          //Graphics layer object for displaying GPS graphic
+        var geometryService;        //Geometry used for Buffering
+        var baseMapLayerCollection; //variable to store basemap collection
+        var roadCenterLinesLayerURL;   //Variable for storing Road layer URL
+        var roadCenterLinesLayerID = 'roadCenterLinesLayerID';  //Temp Feature layer ID
+        var qTask = 'qTask';        //Query task object for querying feature layer
+        var maxAllowableOffset;     //The maximum allowable offset used for generalizing geometries returned by the query operation.
+        var maxBufferDistance;      //The maximum allowable buffer distance
+        var defaultBufferDistance;  //Default Buffer distance
+        var rendererColor;          //Variable for storing feature layer renderer color
+        var averyTemplates;         //Variable storing array of avery label formats
+        var helpURL;            //Variable for storing Help URL
+        var gpTaskAvery;            //ESRI.Tasks.Geoprocessor object for PDF
+        var gpTaskCsv;              //esri.tasks.geoprocessor object for CSV
+        var searchFields;           //Variable for storing configurable address fields
+        var queryOutFields;         //Variable for storing configurable query outfields
+        var infoPopupFieldsCollection; //Variable for storing configurable Info Popup fields
+        var occupantFields;         //Variable for storing Occupant related avery fields
+        var averyFieldsCollection;  //Variable for storing configurable avery fields
+        var csvFieldsCollection;    //Variable for storing configurable csv column fields
+        var occupantName;           //Variable for getting word "Occupant" from config
+        var findTask;                  //Findtask object for querying feature layer
+        var graphicLayerClicked = false;  //Flag for storing state of Graphis Layer Clicked
+        var infoWindowTitle; //variable for displaying infowindow title
+        var defaultImg; //variable for dispalying the push pin image when you locate
+        var defaultRoadSegment; //variable for storing default road segment when you search for road
+        var roadLineColor; //default color of the road
+        var infoRoadCollectionFields; //Variable for storing configurable Info Road collection fields
+        var dialog;
+        var mouseMoveHandle; // variable to display the tooltip
+        var isMac = false; //flag set for Mac
+        var showNullAs; //variable for displaying the default value when Field value is not available
+
+
+
+        //Function to initialize the map and read data from Configuration file
+        function Init() {
+            dojo.connect(window, "onresize", function () {
+                PositionAddressList();
+                if (map) {
+                    map.resize();
+                    map.reposition();
+                }
+            });
+
+            ShowLoadingMessage('Loading...');
+            dojo.connect(dojo.byId("txtAddress"), 'onkeydown', function (evt) {
+                key = evt.keyCode;
+                if (key == dojo.keys.ENTER) {
+                    Locate();
+                }
+            });
+            if (navigator.appVersion.indexOf("Mac") >= 0) {
+                isMac = true;
+            }
+            esri.config.defaults.io.postLength = 256;
+            esri.config.defaults.io.proxyUrl = "proxy.ashx";
+            esri.config.defaults.io.alwaysUseProxy = false;
+            esri.config.defaults.io.timeout = 600000;
+            var responseObject = new js.config();
+            dojo.query(".dijitDialogCloseIcon", dojo.byId('dialogLoadMessage'))[0].title = 'Close';
+            dojo.query(".dijitDialogCloseIcon", dojo.byId('dialogAlertMessage'))[0].title = 'Close';
+            dojo.byId('divLoadMessage').innerHTML = responseObject.SplashScreenMessage;
+            dijit.byId('dialogLoadMessage').show();
+            dojo.byId('imgApp').src = responseObject.ApplicationIcon;
+            dojo.byId('lblAppName').innerHTML = responseObject.ApplicationName;
+            var mapExtent = responseObject.DefaultExtent;
+            searchFields = responseObject.AddressSearchFields.split(",");
+            queryOutFields = responseObject.QueryOutFields.split(",");
+            infoWindowTitle = responseObject.InfoWindowTitle;
+            infoPopupFieldsCollection = responseObject.InfoPopupFieldsCollection;
+            occupantName = responseObject.OccupantName;
+            occupantFields = responseObject.OccupantFields.split(",");
+            defaultImg = responseObject.LocatorMarkupSymbolPath;
+            dojo.byId('rbAddress').checked = true;
+
+            infoRoadCollectionFields = responseObject.InfoRoadCollectionFields;
+            showNullAs = responseObject.ShowNullValueAs;
+
+            averyFieldsCollection = responseObject.AveryFieldsCollection;
+            csvFieldsCollection = responseObject.CsvFieldsCollection;
+            map = new esri.Map("map", { slider: true });
+            rendererColor = responseObject.RendererColor;
+            roadLineColor = responseObject.RoadLineColor;
+
+            var taxParcelFindURL = responseObject.TaxParcelQueryMap;
+            var taxParcelQueryURL = responseObject.TaxParcelPublishingLayer;
+            roadCenterLinesLayerURL = responseObject.RoadCenterLines;
+
+            helpURL = responseObject.HelpURL;
+            maxAllowableOffset = parseFloat(responseObject.MaxAllowableOffset);
+            maxBufferDistance = parseFloat(responseObject.MaxBufferDistance);
+            defaultBufferDistance = parseFloat(responseObject.DefaultBufferDistance);
+            gpTaskAvery = new esri.tasks.Geoprocessor(responseObject.ServiceTask);
+            gpTaskCsv = new esri.tasks.Geoprocessor(responseObject.CsvServiceTask);
+            defaultRoadSegment = responseObject.DefaultRoadSegment;
+            dojo.byId('txtAddress').value = responseObject.LocatorDefaultAddress;
+
+            dojo.byId('txtAddress').defaultText = dojo.byId('txtAddress').value;
+
+            geometryService = new esri.tasks.GeometryService(responseObject.GeometryService);
+            qTask = new esri.tasks.QueryTask(taxParcelQueryURL);
+            findTask = new esri.tasks.FindTask(taxParcelFindURL);
+            dojo.connect(map, "onLoad", function () {
+                var zoomExtent = mapExtent.split(",");
+                startExtent = new esri.geometry.Extent(parseFloat(zoomExtent[0]), parseFloat(zoomExtent[1]), parseFloat(zoomExtent[2]), parseFloat(zoomExtent[3]), map.spatialReference);
+                map.setExtent(startExtent);
+                MapInitFunction(map);
+                if (isMac) {
+                    document.oncontextmenu = function (evt) {
+                        return false;
+                    }
+                }
+            });
+
+            dojo.connect(map, "onClick", ExecuteQueryTask);
+            dojo.connect(map, 'onMouseOut', fireMapMouseUp);
+
+            function fireMapMouseUp(e) {
+                var oEvent = null;
+
+                if (document.createEvent) {
+                    oEvent = document.createEvent("MouseEvents");
+                    oEvent.initMouseEvent("mouseup", true, true, window, 0, 0, 0, e.pageX, e.pageY, false, false, false, false, 0, null);
+                } else if (document.createEventObject) {
+                    oEvent = document.createEventObject();
+                    oEvent.detail = 0;
+                    oEvent.screenX = 0;
+                    oEvent.screenY = 0;
+                    oEvent.clientX = e.pageX;
+                    oEvent.clientY = e.pageY;
+                    oEvent.ctrlKey = false;
+                    oEvent.altKey = false;
+                    oEvent.shiftKey = false;
+                    oEvent.metaKey = false;
+                    oEvent.button = 0;
+                    oEvent.relatedTarget = null;
+                }
+
+                var fired = false;
+                var mapElement = document.getElementById('map');
+
+                if (document.createEvent) {
+                    fired = mapElement.dispatchEvent(oEvent);
+                } else if (document.createEventObject) {
+                    fired = mapElement.fireEvent('onmouseup', oEvent);
+                }
+            }
+
+
+            dojo.connect(map.infoWindow, "onMouseEnter", function (evt) {
+                HideMapTip();
+            });
+            dojo.connect(dojo.byId('headerContent'), "onmouseover", function (evt) {
+                HideMapTip();
+            });
+            dojo.connect(dojo.byId('imgApp'), "onmouseover", function (evt) {
+                HideMapTip();
+            });
+
+
+            baseMapLayerCollection = responseObject.BaseMapLayers;
+            averyTemplates = responseObject.AveryLabelTemplates;
+            CreateBaseMapComponent();
+            GetAveryTemplates();
+            PositionAddressList();
+            if (dojo.isIE) {
+                dojo.byId('txtBuffer').style.width = "128px";
+            }
+
+            customMouseHandler.addEvent(dojo.byId('divContainer'), 'mouseleave', HideBaseMapWidget, false);
+
+            if (!Modernizr.geolocation) {
+                dojo.byId("tdGPS").style.display = "none";
+            }
+            dojo.connect(dojo.byId('btnSubmit'), "onclick", CreateBuffer);
+        }
+
+        //function for validating the numneric text box control
+        function onlyNumbers(evt) {
+            var charCode = (evt.which) ? evt.which : event.keyCode
+            if (charCode > 31 && (charCode < 48 || charCode > 57))
+                return false;
+
+            return true;
+
+        }
+
+        //function for getting InternetExplorer Version
+        function getInternetExplorerVersion() {
+            var rv = -1; // Return value assumes failure.
+            if (navigator.appName == 'Microsoft Internet Explorer') {
+                var ua = navigator.userAgent;
+                var re = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+                if (re.exec(ua) != null)
+                    rv = parseFloat(RegExp.$1);
+            }
+            return rv;
+        }
+        //Function for Map Initialisation and adding layers
+        function MapInitFunction(map) {
+            dojo.byId('map_zoom_slider').style.top = '80px';
+            var infoWindow = map.infoWindow;
+            var infoBorder = dojo.query('.border', infoWindow.domNode)[0];
+            infoBorder.className = 'infoWindowBorder';
+
+            //Event for resizing the map
+            dojo.connect(dojo.byId('map'), 'resize', function () {
+                var resizeTimer;
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function () {
+                    map.resize();
+                    map.reposition();
+                }, 500);
+            });
+
+            dojo.query(".hide", dojo.byId("map_infowindow")).connect("onclick", function () {
+                isSpanClicked = false;
+                HideMapTip();
+                dojo.disconnect(mouseMoveHandle);
+
+                interactiveParcel = false;
+                polygon = true;
+
+                map.infoWindow.hide();
+            });
+
+            //Adding buffer graphics layer on map
+            var gLayer = new esri.layers.GraphicsLayer();
+            gLayer.id = tempBufferLayer;
+            map.addLayer(gLayer);
+
+            var gLayer = new esri.layers.GraphicsLayer();
+            gLayer.id = tempGPSLayer;
+            map.addLayer(gLayer);
+
+            //Adding query graphics layer on map
+            var gLayer = new esri.layers.GraphicsLayer();
+            gLayer.id = queryGraphicLayer;
+            map.addLayer(gLayer);
+            dojo.connect(gLayer, "onClick", function (evtArgs) {
+                graphicLayerClicked = true;
+                findTasksGraphicClicked = false;
+            });
+            HideLoadingMessage();
+
+            var roadLineSymbol = new esri.symbol.SimpleLineSymbol();
+            roadLineSymbol.setWidth(5);
+            var roadLinefillColor = new dojo.Color(roadLineColor);
+            roadLineSymbol.setColor(roadLinefillColor);
+            var roadLineRenderer = new esri.renderer.SimpleRenderer(roadLineSymbol);
+
+            var roadCenterLinesLayer = new esri.layers.FeatureLayer(roadCenterLinesLayerURL, {
+                mode: esri.layers.FeatureLayer.MODE_SELECTION,
+                outFields: ["*"]
+            });
+            roadCenterLinesLayer.id = roadCenterLinesLayerID;
+            roadCenterLinesLayer.setRenderer(roadLineRenderer);
+            map.addLayer(roadCenterLinesLayer);
+            dojo.connect(roadCenterLinesLayer, "onClick", function (evt) {
+                if (evt.ctrlKey) {
+                    if (dijit.byId('toolTipDialog')) {
+                        HideRoad(evt);
+                    }
+                }
+                else {
+                    ShowRoadDetails(evt.graphic.attributes, evt.mapPoint);
+                }
+                evt = (evt) ? evt : event;
+                evt.cancelBubble = true;
+                if (evt.stopPropagation) evt.stopPropagation();
+            });
+
+
+        }
+        dojo.addOnLoad(Init);
+    </script>
+</head>
+<body class="claro" onkeydown="if (event.keyCode==dojo.keys.TAB) { if (dijit.byId('dialogLoadMessage').open || dijit.byId('dialogAlertMessage').open) {return event.keyCode!=dojo.keys.TAB;}}">
+    <div id="divMainContainer" dojotype="dijit.layout.BorderContainer" design="headline"
+        gutters="false" style="width: 100%; height: 100%; position: relative">
+        <div id="map" region="center" dojotype="dijit.layout.ContentPane" style="position: relative;
+            overflow: hidden; border: double silver; padding: 0px !important; width: 100%;
+            height: 100%; padding: 0; margin: 0; border: 0;">
+        </div>
+    </div>
+    <div class="header_container">
+        <div class="headerBackground">
+        </div>
+        <div class="headerIcon">
+            <img id="imgApp" style="background-color: transparent;" />
+        </div>
+        <div class="header">
+            <table style="height: 100%;">
+                <tr valign="middle">
+                    <td style="width: 45%;">
+                        <table>
+                            <tr>
+                                <td id="lblAppName" style="color: White;">
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="headerContent" id="headerContent" style="vertical-align: middle;" align="right">
+            <table style="height: 100%;">
+                <tr>
+                    <td align="right" valign="middle">
+                        <table>
+                            <tr>
+                                <td align="left" valign="bottom">
+                                    <input type="radio" id="rbAddress" name="rbSearchGroup" checked="checked" onclick="RadioButtonClicked(this)" />
+                                    <span id="spanAddress" class="text" onclick="ToggleSearch(this);">Find Address or Parcel:
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="left" valign="top">
+                                    <input type="radio" id="rbRoadSegment" name="rbSearchGroup" onclick="RadioButtonClicked(this)" />
+                                    <span id="spanRoadSegment" class="disabledText" onclick="ToggleSearch(this);">Find Street
+                                        or Road: </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="width: 270px;" align="left" valign="middle">
+                        <div style="border: 1px solid  #7D7D7D; width: 255px; background-color: Black; position: relative">
+                            <input type="text" id="txtAddress" class="textBox" />
+                            <img id="imgLocateAddress" src="images/Locate.png" onclick="Locate();" title="Search"
+                                style="width: 30px; height: 30px; right: 2px; position: absolute; cursor: pointer;" />
+                        </div>
+                    </td>
+                    <td id="tdGPS" align="left" style="width: 40px;" valign="middle">
+                        <button dojotype="dijit.form.ToggleButton" id="imgGPSButton" title="Current Location"
+                            onclick="ShowMyLocation();">
+                            <img id="imgGPS" src="images/gps.png" width="30px" height="30px" />
+                        </button>
+                    </td>
+                    <td align="center" style="width: 40px;" valign="middle">
+                        <button dojotype="dijit.form.ToggleButton" id="imgBaseMap" title="Switch Basemap"
+                            onclick="ShowHideBaseMapComponent();">
+                            <img src="images/imgBaseMap.png" width="30px" height="30px" />
+                        </button>
+                    </td>
+                    <td align="center" style="width: 40px;" valign="middle">
+                        <button dojotype="dijit.form.ToggleButton" id="imgPrint" title="Print" onclick="ShowModal();">
+                            <img src="images/imgPrint.png" width="30px" height="30px" />
+                        </button>
+                    </td>
+                    <td align="center" style="width: 40px;" valign="middle">
+                        <button dojotype="dijit.form.ToggleButton" id="imgHelp" title="Help" onclick="ShowHelp();">
+                            <img src="images/Help.png" width="30px" height="30px" />
+                        </button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div id="divBaseMapTitleContainer" style="display: none; width: 250px; position: absolute;
+        z-index: 100;">
+        <table cellpadding="0" cellspacing="0" style="width: 250px">
+            <tr class="trClass">
+                <td>
+                    <div id="divContainer" dojotype="dijit.layout.ContentPane" class="divBaseMapContainer">
+                        <div id="layerList">
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="divAddressContainer" class="divSearchListContainer" style="display: none;
+        position: absolute; z-index: 100;">
+    </div>
+    <div id="divLoadingIndicator">
+        <table style="width: 100%; height: 100%;">
+            <tr>
+                <td align="center">
+                    <table>
+                        <tr>
+                            <td align="center">
+                                <img src="images/loading.gif" />
+                            </td>
+                            <td id="loadingMessage" style="font-weight: bold; font-size: 11px; color: White;">
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="divNotifyNeighborsContainer" class="notifyTest">
+        <table id="tblNotify" cellspacing="0" cellpadding="0" style="width: 100%; color: White;
+            font-size: 11px; padding-right: 2px; padding-left: 2px">
+            <tr id="trBuffer" style="height: 35px; vertical-align: middle;">
+                <td style="width: 65%;">
+                    <span style="color: White; font-size: 11px;" class="spanTxt">Enter buffer distance (feet):
+                        <strong style="color: Yellow; font-size: 11px;">*</strong></span>
+                </td>
+                <td style="width: 35%;">
+                    <input type="text" id="txtBuffer" style="background-color: Black; color: White; width: 132px;
+                        border: 1px solid #B5BCC7;" onkeypress="return onlyNumbers(event)" />
+                </td>
+            </tr>
+            <tr id="trNotify" style="width: 100%; height: 20px; vertical-align: top;">
+                <td colspan="2">
+                    <span style="color: White; font-size: 11px;" class="spanTxt">Who do you want to Notify?
+                        <strong style="color: Yellow; font-size: 11px;">*</strong> </span>
+                </td>
+            </tr>
+            <tr id="trProperty" style="width: 100%; height: 30px; vertical-align: top;">
+                <td>
+                    <table cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td valign="middle">
+                                <input id="chkOwners" name="chkOwners" dojotype="dijit.form.CheckBox" />
+                            </td>
+                            <td style="color: White; font-size: 11px;" valign="middle" class="spanTxt">
+                                Property Owners
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td valign="middle">
+                                <input id="chkOccupants" name="chkOccupants" dojotype="dijit.form.CheckBox" />
+                            </td>
+                            <td style="color: White; font-size: 11px;" valign="middle" class="spanTxt">
+                                Property Occupants
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr id="trAvery" style="width: 100%; height: 35px; vertical-align: top;">
+                <td>
+                    <table cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td valign="middle">
+                                <input id="chkPdf" name="chkPdf" dojotype="dijit.form.CheckBox" />
+                            </td>
+                            <td valign="middle">
+                                <span style="color: White; font-size: 11px;" class="spanTxt">Download Avery labels in
+                                    PDF format</span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <input id="selectAvery" dojotype="dijit.form.ComboBox" autocomplete="false" hasdownarrow="true"
+                        style="width: 130px; color: Black;" onchange="ValidateAveryFormat">
+                </td>
+            </tr>
+            <tr id="trCsvFormat" style="width: 100%; height: 30px; vertical-align: top;">
+                <td colspan="2" valign="bottom">
+                    <table cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td valign="middle">
+                                <input id="chkCsv" name="chkCsv" dojotype="dijit.form.CheckBox" />
+                            </td>
+                            <td style="color: White; font-size: 11px;" valign="middle" class="spanTxt">
+                                Download in CSV format
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr id="trSpanMsg" style="width: 100%; height: 35px;">
+                <td colspan="2" align="left" valign="middle">
+                    <span class="spanFileUploadMessage" id="spanFileUploadMessage" style="display: none;
+                        font-size: 11px;"></span>
+                </td>
+            </tr>
+            <tr id="trDownload" style="width: 100%; height: 50px; vertical-align: bottom;">
+                <td colspan="2" align="center" valign="middle">
+                    <button dojotype="dijit.form.Button" class="button" type="button" id="btnSubmit">
+                        <div class="divButtonText">
+                            Download</div>
+                    </button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="dialogAlertMessage" dojotype="dijit.Dialog" style="width: 300px;">
+        <table style="width: 100%; height: 100%;">
+            <tr>
+                <td align="center">
+                    <div id="divMessage" style="text-align: left">
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                </td>
+            </tr>
+            <tr>
+                <td align="center">
+                    <div style="width: 75px; height: 25px; margin-top: 10px" class="customButton" onclick="CloseDialog();">
+                        <div class="customButtonInner">
+                            <table style="width: 100%; height: 100%;">
+                                <tr>
+                                    <td align="center" valign="middle" style="color: White; font-size: 11px;">
+                                        OK
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="dialogLoadMessage" dojotype="dijit.Dialog" style="width: 350px;">
+        <table>
+            <tr>
+                <td>
+                    <div id="divLoadMessage" style="background: black; color: White; font-size: 11px;">
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td align="center">
+                    <div id="divLoadingOK" style="width: 75px; height: 25px; margin-top: 10px" class="customButton"
+                        onclick="dijit.byId('dialogLoadMessage').hide();">
+                        <div class="customButtonInner">
+                            <table style="width: 100%; height: 100%;">
+                                <tr>
+                                    <td align="center" valign="middle" style="color: White; font-size: 11px;">
+                                        OK
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
