@@ -5,7 +5,7 @@ Land Use Public Notification is a configuration of ArcGIS Server and a JavaScrip
 
 [Try the Land Use Public Notfication application](http://localgovtemplates2.esri.com/PublicNotification/default.htm)
 
-![Image of Land Use Public Notification application](https://raw.github.com/Esri/park-and-recreation-finder/master/land-use-public-notification.png "Land Use Public Notification application")
+![Image of Land Use Public Notification application](https://raw.github.com/Esri/land-use-public-notification/master/land-use-public-notification.png "Land Use Public Notification application")
 
 ## Features
 
