@@ -1,5 +1,5 @@
 ﻿/** @license
- | Version 10.1.1
+ | Version 10.2
  | Copyright 2012 Esri
  |
  | Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,104 +14,121 @@
  | See the License for the specific language governing permissions and
  | limitations under the License.
  */
-var mapPoint;                       //variable for storing map point location
-var dist;                           //variable for storing buffer distance
-var averyFormat = '';               //variable for storing avery format
-var pdfFormat = '';                 //flags for PDF format download
-var csvFormat = '';                 //flags for CSV format download
-var occupants = '';                 //flags for notifying occupants
-var owners = '';                    //flags for notifying owners
-var overlapCount;                   //Variable for maintaining the count of overlapping parcels.
-var geometryForBuffer;              //var for storing geometry to be used for buffer
-var findTasksGraphicClicked = false;
-var polygon = true; ;                       //flag for handling drawing route and polygon
+var mapPoint;                       //variable to store map point location
+var dist;                           //variable to store buffer distance
+var averyFormat = '';               //variable to store avery format
+var pdfFormat = '';                 //variable to store PDF format download
+var csvFormat = '';                 //variable to store CSV format download
+var occupants = '';                 //variable to store notifying occupants
+var owners = '';                    //variable to store notifying owners
+var overlapCount;                   //Variable to maintain the count of overlapping parcels.
+var geometryForBuffer;              //variable to store geometry to be used for buffer
+var findTasksGraphicClicked = false; //flag for handling to draw polygon
+var polygon = true;                 //flag for handling to draw route and polygon
 var interactiveParcel = false;
-var flagForNewRoad;
+var flagForNewRoad; //flag for handling to draw new route
+var flagForAddress = false; //flag to handle address search
+var bufferArray = []; //Array to store buffer parameters
 
-//function for locating address/ParcleID Using Findtask
+
+//Locate Address/ParcleID using findtask
 function Locate() {
-    if (dojo.byId('imgGPS').src = "images/BlueGPS.png") {
-        dojo.byId('imgGPS').src = "images/gps.png";
-        var gpsButton = dijit.byId('imgGPSButton');
-        gpsButton.attr("checked", false);
-    }
+    var thisSearchTime = lastSearchTime = (new Date()).getTime();
+
     isSpanClicked = false;
     HideMapTip();
     dojo.disconnect(mouseMoveHandle);
-    PositionAddressList();
-    if (dojo.byId('rbAddress').checked) {
-        var searchAddress;
+    if (dojo.byId("tdSearchAddress").className.trim() == "tdSearchByAddress") {
+        //Search for address
         var findParams;
         findParams = new esri.tasks.FindParameters();
         findParams.returnGeometry = true;
         findParams.layerIds = [0];
         findParams.searchFields = searchFields;
-        findParams.outSpatialReference = map.spatialReference;
-        var nodeBaseMap = dojo.byId('divBaseMapTitleContainer');
-        var basemapButton = dijit.byId('imgBaseMap');
-        basemapButton.attr("checked", false);
         ClearAll();
-        if (nodeBaseMap.style.display != "none") {
-            ShowHideBaseMapComponent();
-        }
-        CloseAddressContainer();
+        parcelArray = [];
 
-        searchAddress = dojo.byId("txtAddress").value.trim();
-        findParams.searchText = searchAddress;
-
-        if (searchAddress != "") {
-            findTask.execute(findParams, PopulateSearchItem, function (err) {
-                HideLoadingMessage();
-                ShowDialog('Error', err.message);
-
-            });
-            ShowLoadingMessage('Searching...');
+        findParams.searchText = dojo.byId("txtAddress").value.trim();
+        flagForAddress = true;
+        if (dojo.byId("txtAddress").value.trim() == '') {
+            dojo.byId("imgSearchLoader").style.display = "none";
+            RemoveChildren(dojo.byId('tblAddressResults'));
+            CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+            if (dojo.byId("txtAddress").value != "") {
+                alert(messages.getElementsByTagName("addressToLocate")[0].childNodes[0].nodeValue);
+            }
+            return;
         }
-        else {
-            ShowDialog('Error', 'Enter an Address or Parcel ID to search.');
-        }
+        findTask.execute(findParams, function (featureSet) {
+            if (thisSearchTime < lastSearchTime) {
+                return;
+            }
+            PopulateSearchItem(featureSet);
+        }, function (err) {
+            FindTaskErrBack();
+        });
+        setTimeout(function () {
+            if (flagForAddress) {
+                flagForAddress = false;
+                dojo.byId("imgSearchLoader").style.display = "none";
+                RemoveChildren(dojo.byId('tblAddressResults'));
+                CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+                selectedPoint = null;
+                displayInfo = null;
+                map.infoWindow.hide();
+                LoctorErrBack("exceedTimeout", true);
+                return;
+            }
+        }, 10000);
+        dojo.byId("imgSearchLoader").style.display = "block";
     }
     else {
-        var nodeBaseMap = dojo.byId('divBaseMapTitleContainer');
-        var basemapButton = dijit.byId('imgBaseMap');
-        basemapButton.attr("checked", false);
-        if (nodeBaseMap.style.display != "none") {
-            ShowHideBaseMapComponent();
+        //Search for road
+        if (dojo.byId("txtAddress").value.trim() == '') {
+            dojo.byId("imgSearchLoader").style.display = "none";
+            RemoveChildren(dojo.byId('tblAddressResults'));
+            CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+            if (dojo.byId("txtAddress").value != "") {
+                alert(messages.getElementsByTagName("streetToLocate")[0].childNodes[0].nodeValue);
+            }
+            return;
         }
-        CloseAddressContainer();
 
-        var roadName = dojo.byId("txtAddress").value.trim();
-        if (roadName == "") {
-            ShowDialog('Error', 'Enter a road or street name to search.');
-        }
-        else {
-            ClearAll();
-            isSpanClicked = false;
-            HideMapTip();
-            dojo.disconnect(mouseMoveHandle);
-            interactiveParcel = false;
+        ClearAll();
+        parcelArray = [];
+        roadArray = [];
+        isSpanClicked = false;
+        HideMapTip();
+        dojo.disconnect(mouseMoveHandle);
+        interactiveParcel = false;
 
-            var query = new esri.tasks.Query();
-            query.where = "UPPER(FULLNAME) LIKE '" + roadName.toUpperCase() + "%'";
-            ShowLoadingMessage('Searching...');
-            map.getLayer(roadCenterLinesLayerID).queryFeatures(query, function (featureSet) {
-                RemoveChildren(dojo.byId('divAddressContainer'));
+        var query = new esri.tasks.Query();
+        query.where = "UPPER(" + locatorSettings.Locators[1].DisplayField + ") LIKE '" + dojo.byId("txtAddress").value.trim().toUpperCase() + "%'";
+        dojo.byId("imgSearchLoader").style.display = "block";
 
-                if (featureSet.features.length > 0) {
+        map.getLayer(roadCenterLinesLayerID).queryFeatures(query, function (featureSet) {
+            if (thisSearchTime < lastSearchTime) {
+                return;
+            }
+
+            RemoveChildren(dojo.byId('tblAddressResults'));
+            CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+            dojo.byId("txtAddress").value = dojo.byId("txtAddress").value.trim();
+            if (featureSet.features.length > 0) {
+                if (query.where.toUpperCase().match(dojo.byId("txtAddress").value.toUpperCase())) {
                     if (featureSet.features.length == 1) {
                         FindAndShowRoads();
                     } else {
                         var searchString = dojo.byId("txtAddress").value.trim().toLowerCase();
-                        var table = document.createElement("table");
+                        var table = dojo.byId("tblAddressResults");
                         var tBody = document.createElement("tbody");
                         table.appendChild(tBody);
                         table.className = "tbl";
-                        table.id = "tbl";
                         table.cellSpacing = 0;
                         table.cellPadding = 0;
                         var nameArray = [];
                         for (var order = 0; order < featureSet.features.length; order++) {
-                            nameArray.push({ name: featureSet.features[order].attributes["FULLNAME"], attributes: featureSet.features[order].attributes, geometry: featureSet.features[order].geometry });
+                            nameArray.push({ name: featureSet.features[order].attributes[locatorSettings.Locators[1].DisplayField], attributes: featureSet.features[order].attributes, geometry: featureSet.features[order].geometry });
                         }
                         nameArray.sort(function (a, b) {
                             var nameA = a.name.toLowerCase();
@@ -124,18 +141,18 @@ function Locate() {
 
                         var numUnique = 0;
                         for (var i = 0; i < nameArray.length; i++) {
-                            if (0 == i || searchString != nameArray[i].attributes["FULLNAME"].toLowerCase()) {
+                            if (0 == i || searchString != nameArray[i].attributes[locatorSettings.Locators[1].DisplayField].toLowerCase()) {
                                 if (i > 0) {
-                                    var previousFoundName = nameArray[i - 1].attributes["FULLNAME"]
+                                    var previousFoundName = nameArray[i - 1].attributes[locatorSettings.Locators[1].DisplayField]
                                 } else {
                                     var previousFoundName = "";
                                 }
-                                if (nameArray[i].attributes["FULLNAME"] != previousFoundName) {
+                                if (nameArray[i].attributes[locatorSettings.Locators[1].DisplayField] != previousFoundName) {
                                     ++numUnique;
                                     var tr = document.createElement("tr");
                                     tBody.appendChild(tr);
                                     var td1 = document.createElement("td");
-                                    td1.innerHTML = nameArray[i].attributes["FULLNAME"];
+                                    td1.innerHTML = nameArray[i].attributes[locatorSettings.Locators[1].DisplayField];
                                     td1.className = 'tdAddress';
                                     td1.id = i;
                                     td1.title = 'Click to locate road segment';
@@ -143,6 +160,8 @@ function Locate() {
                                     td1.onclick = function () {
                                         ClearBuffer();
                                         dojo.byId("txtAddress").value = this.innerHTML;
+                                        dojo.byId('txtAddress').setAttribute("defaultCase", this.innerHTML);
+                                        dojo.byId("txtAddress").setAttribute("defaultCaseTitle", this.innerHTML);
                                         polygon = false;
                                         FindAndShowRoads();
                                         HideAddressContainer();
@@ -152,77 +171,218 @@ function Locate() {
                             }
                         }
 
-                        if(1 < numUnique) {
-                            AnimateAdvanceSearch();
-                            var scrollbar_container = document.createElement('div');
-                            scrollbar_container.id = "address_container1";
-                            scrollbar_container.className = "addressScrollbar_container";
-
-                            var container = document.createElement("div");
-                            container.id = "address_content1";
-                            container.className = 'addressScrollbar_content';
-                            container.appendChild(table);
-                            scrollbar_container.appendChild(container);
-                            dojo.byId('divAddressContainer').appendChild(scrollbar_container);
-                            CreateScrollbar(scrollbar_container, container);
+                        if (1 < numUnique) {
+                            CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
                         } else {
-                            dojo.byId("txtAddress").value = nameArray[0].attributes["FULLNAME"];
+                            dojo.byId("txtAddress").value = nameArray[0].attributes[locatorSettings.Locators[1].DisplayField];
+                            dojo.byId('txtAddress').setAttribute("defaultCase", nameArray[0].attributes[locatorSettings.Locators[1].DisplayField]);
+                            dojo.byId("txtAddress").setAttribute("defaultCaseTitle", nameArray[0].attributes[locatorSettings.Locators[1].DisplayField]);
                             FindAndShowRoads();
+                            HideAddressContainer();
                         }
                     }
-                } else {
-                    map.infoWindow.hide();
-                    ShowDialog('Error', 'Unable to locate specified street or road.');
                 }
+            } else {
+                selectedPoint = null;
+                displayInfo = null;
+                map.infoWindow.hide();
+                dojo.byId("imgSearchLoader").style.display = "none";
+                RemoveChildren(dojo.byId('tblAddressResults'));
+                CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+                LoctorErrBack("unableToLocate", true);
+            }
+            dojo.byId("imgSearchLoader").style.display = "none";
+        });
 
-                HideLoadingMessage();
-            });
-
-        }
     }
 }
 
-//function for finding the road segment
-function FindRoadSegment(objectID) {
-    var query = new esri.tasks.Query();
-    query.objectIds = [Number(objectID)];
-    map.getLayer(roadCenterLinesLayerID).selectFeatures(query, esri.layers.FeatureLayer.SELECTION_NEW, function (features) {
-        if (map.getLayer(queryGraphicLayer)) {
-            map.getLayer(queryGraphicLayer).clear();
+//Populate list of parcel id's in address container
+function PopulateSearchItem(featureSet) {
+    dojo.byId("txtAddress").value = dojo.byId("txtAddress").value.trim();
+    if (flagForAddress) {
+        if (featureSet.length > 0) {
+            if (featureSet[0].value.toUpperCase().match(dojo.byId("txtAddress").value.toUpperCase())) {
+                RemoveChildren(dojo.byId('tblAddressResults'));
+                CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+
+                var DislayField = [];
+                var features = featureSet;
+                var ieVersion = getInternetExplorerVersion();
+                if (features.length > 0) {
+                    if (features.length == 1) {
+                        FindTaskResults(featureSet[0]);
+                    }
+                    else {
+                        for (var i = 0; i < featureSet.length; i++) {
+                            if (featureSet[i].foundFieldName == locatorSettings.Locators[0].DisplayField.split(",")[0])
+                                DislayField[i] = locatorSettings.Locators[0].DisplayField.split(",")[0];
+                            else if (featureSet[i].foundFieldName == locatorSettings.Locators[0].DisplayField.split(",")[1])
+                                DislayField[i] = locatorSettings.Locators[0].DisplayField.split(",")[1];
+                        }
+
+                        var table = dojo.byId("tblAddressResults");
+                        var tBody = document.createElement("tbody");
+                        table.appendChild(tBody);
+                        table.className = "tbl";
+                        if (ieVersion.toString() == "7") {          //Patch for fixing overflow-x issue in compatibility mode.
+                            table.style.width = "94%";
+                            table.style.overflowX = "hidden";
+                        }
+                        table.cellSpacing = 0;
+                        table.cellPadding = 0;
+                        for (var i = 0; i < features.length; i++) {
+                            var tr = document.createElement("tr");
+                            tBody.appendChild(tr);
+                            var td1 = document.createElement("td");
+                            td1.innerHTML = featureSet[i].feature.attributes[DislayField[i]];
+                            td1.className = 'tdAddress';
+                            td1.height = 20;
+                            td1.id = i;
+                            td1.title = 'Click to Locate parcel';
+                            td1.setAttribute("parcelId", featureSet[i].feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[0]]);
+                            td1.onclick = function () {
+                                dojo.byId("txtAddress").value = this.innerHTML;
+                                dojo.byId('txtAddress').setAttribute("defaultAddress", this.innerHTML);
+                                dojo.byId("txtAddress").setAttribute("defaultAddressTitle", this.innerHTML);
+                                FindTaskResults(featureSet[this.id]);
+                                RemoveChildren(dojo.byId('tblAddressResults'));
+                                dojo.byId("imgSearchLoader").style.display = "none";
+                            }
+                            tr.appendChild(td1);
+                        }
+                        SetAddressResultsHeight();
+                    }
+                    dojo.byId("imgSearchLoader").style.display = "none";
+                }
+                else {
+                    RemoveChildren(dojo.byId('tblAddressResults'));
+                    selectedPoint = null;
+                    displayInfo = null;
+                    map.infoWindow.hide();
+                    alert(messages.getElementsByTagName("unableToLocateParcel")[0].childNodes[0].nodeValue);
+                    dojo.byId("imgSearchLoader").style.display = "none";
+                }
+            }
         }
-
-        map.setExtent(features[0].geometry.getExtent().expand(2));
-    }, QueryError);
-    polygon = false;
+        else {
+            FindTaskErrBack();
+        }
+        flagForAddress = false;
+    }
 }
 
-//Error handler for buffering events failed
-function QueryError(err) {
-    ShowDialog("Error", "An error occured while fetching road information.");
+//Locate selected parcel or address
+function FindTaskResults(results) {
+    map.graphics.clear();
+    //clearing all graphic layers query layers
+    ClearAll();
+    isSpanClicked = false;
+    HideMapTip();
+    dojo.disconnect(mouseMoveHandle);
+    interactiveParcel = false;
+    if (map.getLayer(roadCenterLinesLayerID)) {
+        map.getLayer(roadCenterLinesLayerID).clear();
+    }
+
+    dojo.byId("txtAddress").defaultText = results.value;
+
+    var layer = map.getLayer(queryGraphicLayer);
+    var lineColor = new dojo.Color();
+    lineColor.setColor(rendererColor);
+
+    var fillColor = new dojo.Color();
+    fillColor.setColor(rendererColor);
+    fillColor.a = 0.25;
+
+    var symbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID,
+                    new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, lineColor, 3), fillColor);
+    results.feature.setSymbol(symbol);
+
+    geometryForBuffer = results.feature.geometry;
+    parcelArray.push(results.feature.attributes[parcelInformation.AliasParcelField]);
+    ringsmultiPoint = new esri.geometry.Multipoint(new esri.SpatialReference({ wkid: 3857 }));
+    for (var i = 0; i < results.feature.geometry.rings[0].length; i++)
+        ringsmultiPoint.addPoint(results.feature.geometry.rings[0][i]);
+    var centerPoint = ringsmultiPoint.getExtent().getCenter();
+
+    map.setExtent(GetExtentFromPolygon(results.feature.geometry.getExtent().expand(4)));
+
+    setTimeout(function () { ShowFindTaskData(results.feature, centerPoint) }, 700);
+    layer.add(results.feature);
+
+    findTasksGraphicClicked = true;
+    graphicLayerClicked = false;
+    polygon = true; //if the parcel is already drawn
+
+    HideAddressContainer();
 }
 
-//function for displaying the parcels on map
+//This function is called when find task service fails or does not return any data
+function FindTaskErrBack() {
+    flagForAddress = false;
+    dojo.byId("imgSearchLoader").style.display = "none";
+    RemoveChildren(dojo.byId('tblAddressResults'));
+    CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
+    selectedPoint = null;
+    displayInfo = null;
+    map.infoWindow.hide();
+    LoctorErrBack(messages.getElementsByTagName("noResults")[0].childNodes[0].nodeValue, false);
+}
+
+//This function is called when locator service fails or does not return any data
+function LoctorErrBack(val, xml) {
+    var table = dojo.byId("tblAddressResults");
+    var tBody = document.createElement("tbody");
+    table.appendChild(tBody);
+    table.cellSpacing = 0;
+    table.cellPadding = 0;
+
+    var tr = document.createElement("tr");
+    tBody.appendChild(tr);
+    var td1 = document.createElement("td");
+    if (xml) {
+        td1.innerHTML = messages.getElementsByTagName(val)[0].childNodes[0].nodeValue;
+    }
+    else {
+        td1.innerHTML = val;
+    }
+    tr.appendChild(td1);
+}
+
+//Display the parcels on map
 function ExecuteQueryTask(evt) {
+    HideShareAppContainer();
+    HideAddressContainer();
+    if (dojo.coords("divLayerContainer").h > 0) {
+        dojo.replaceClass("divLayerContainer", "hideContainerHeight", "showContainerHeight");
+        dojo.byId('divLayerContainer').style.height = '0px';
+    }
     if (!graphicLayerClicked || findTasksGraphicClicked) {
+        roadArray = [];
         featureSet = null;
         if (!evt.ctrlKey) {
-            ShowLoadingMessage('Locating parcel...');
+            ShowLoadingMessage('Locating parcel');
             isSpanClicked = false;
             HideMapTip();
             dojo.disconnect(mouseMoveHandle);
             ClearAll();
             interactiveParcel = false;
+            parcelArray = [];
             QueryForParcel(evt);
             if (map.getLayer(roadCenterLinesLayerID)) {
                 map.getLayer(roadCenterLinesLayerID).clearSelection();
             }
         }
         if (interactiveParcel) {
+            if (map.getLayer(tempBufferLayer).graphics.length > 0) {
+                parcelArray = bufferArray;
+            }
             ClearAll(evt);
             if (evt.ctrlKey) {
                 if (polygon) {
                     HideMapTip();
-                    ShowLoadingMessage('Locating adjacent parcel...');
+                    ShowLoadingMessage('Locating adjacent parcel');
                     mouseMoveHandle = dojo.connect(map, "onMouseMove", ShowMapTipForParcels);
                     QueryForParcel(evt);
                 }
@@ -248,20 +408,20 @@ function ExecuteQueryTask(evt) {
 
     if (ctrlPressed) {
         if (!polygon) {
+            selectedPoint = null;
+            displayInfo = null;
             map.infoWindow.hide();
             HideMapTip();
-            ShowLoadingMessage('Locating adjacent road...');
+            ShowLoadingMessage('Locating adjacent road');
             mouseMoveHandle = dojo.connect(map, "onMouseMove", ShowMapTipForRoad);
             QueryForAdjacentRoad(evt);
         }
-
     }
 }
 
-
-//function to query for parcel when clicked on map
+//Query for parcel when clicked on map
 function QueryForParcel(evt) {
-    var mapPointForQuery = new esri.geometry.Point(evt.mapPoint.x, evt.mapPoint.y, new esri.SpatialReference({ wkid: 102100 }));
+    var mapPointForQuery = new esri.geometry.Point(evt.mapPoint.x, evt.mapPoint.y, map.spatialReference);
     var query;
     query = new esri.tasks.Query();
     query.returnGeometry = true;
@@ -273,18 +433,36 @@ function QueryForParcel(evt) {
             ShowFeatureSet(fset, evt);
         }
         else {
-            ShowDialog('Error', "Parcel not found at current location.");
+            alert(messages.getElementsByTagName("noParcel")[0].childNodes[0].nodeValue);
             HideMapTip();
             HideLoadingMessage();
         }
-    }, function (erer) {
-        ShowDialog('Error', "Unable To Perform Operation, Invalid Geometry.");
+    }, function (err) {
+        alert(messages.getElementsByTagName("unableToPerform")[0].childNodes[0].nodeValue);
         HideLoadingMessage();
     });
     esri.config.defaults.io.alwaysUseProxy = false;
 }
 
-//function for locating adjacent road
+//Find the road segment
+function FindRoadSegment(objectID) {
+    var query = new esri.tasks.Query();
+    query.objectIds = [Number(objectID)];
+    map.getLayer(roadCenterLinesLayerID).selectFeatures(query, esri.layers.FeatureLayer.SELECTION_NEW, function (features) {
+        if (map.getLayer(queryGraphicLayer)) {
+            map.getLayer(queryGraphicLayer).clear();
+        }
+        map.setExtent(features[0].geometry.getExtent().expand(2));
+    }, QueryError);
+    polygon = false;
+}
+
+//Error handler for buffering events failed
+function QueryError(err) {
+    alert(messages.getElementsByTagName("fetchRoadInformation")[0].childNodes[0].nodeValue);
+}
+
+//Locate adjacent road
 function QueryForAdjacentRoad(evt) {
     if (interactiveParcel) {
         var temp = evt.mapPoint.getExtent();
@@ -305,12 +483,13 @@ function QueryForAdjacentRoad(evt) {
             queryTask.execute(query, function (featureset) {
                 if (featureset.features.length > 0) {
                     var query = new esri.tasks.Query();
-                    query.where = "FULLNAME = '" + featureset.features[0].attributes.FULLNAME + "'";
+                    query.where = locatorSettings.Locators[1].DisplayField + "= '" + featureset.features[0].attributes[locatorSettings.Locators[1].DisplayField] + "'";
                     map.getLayer(roadCenterLinesLayerID).selectFeatures(query, esri.layers.FeatureLayer.SELECTION_ADD, function (featureSet) {
                         var polyLine = new esri.geometry.Polyline(map.spatialReference);
                         for (var j = 0; j < map.getLayer(roadCenterLinesLayerID).graphics.length; j++) {
-                                                        map.getLayer(roadCenterLinesLayerID).graphics[j].show();
+                            map.getLayer(roadCenterLinesLayerID).graphics[j].show();
                             polyLine.addPath(map.getLayer(roadCenterLinesLayerID).graphics[j].geometry.paths[0]);
+                            roadArray.push(map.getLayer(roadCenterLinesLayerID).graphics[j].attributes[map.getLayer(roadCenterLinesLayerID).objectIdField]);
                         }
                         map.setExtent(polyLine.getExtent().expand(1.5));
                     });
@@ -318,21 +497,21 @@ function QueryForAdjacentRoad(evt) {
                 }
                 else {
                     HideLoadingMessage();
-                    ShowDialog('Error', 'Road not found at current location.');
+                    alert(messages.getElementsByTagName("noRoad")[0].childNodes[0].nodeValue);
                 }
             });
         }, function (error) {
             HideLoadingMessage();
-            ShowDialog('Error', error.message);
+            alert(error.message);
         });
     }
     else {
         HideLoadingMessage();
-        ShowDialog('Error', 'Road not found at current location.');
+        alert(messages.getElementsByTagName("noRoad")[0].childNodes[0].nodeValue);
     }
 }
 
-//Function if their are multiple features in FeatureSet
+//Function if their are multiple features in featureSet
 function ShowFeatureSet(fset, evt) {
     ClearAll(evt);
     if (fset.features.length > 1) {
@@ -340,10 +519,11 @@ function ShowFeatureSet(fset, evt) {
         featureSet = fset;
         overlapCount = 0;
         var contentDiv = CreateContent(featureSet.features);
-        ShowOverlappingParcels(featureSet.features, contentDiv, evt);
+        ShowOverlappingParcels(featureSet.features, contentDiv, evt, featureSet.features[0].attributes[parcelInformation.ParcelIdentification]);
         var features = featureSet.features;
-        DrawPolygon(features);
+        DrawPolygon(features, false);
         geometryForBuffer = features[0].geometry;
+        map.setExtent(CenterMapPoint(evt.mapPoint, fset.features[0].geometry.getExtent().expand(9)));
     }
     else {
         var feature = fset.features[0];
@@ -356,6 +536,8 @@ function ShowFeatureSet(fset, evt) {
         var symbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID,
                     new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, lineColor, 3), fillColor);
         feature.setSymbol(symbol);
+        parcelArray.push(feature.attributes[parcelInformation.ParcelIdentification]);
+        displayInfo = feature.attributes[parcelInformation.ParcelIdentification] + "$infoParcel";
         ShowUniqueParcel(feature, evt);
         HideLoadingMessage();
         map.setExtent(CenterMapPoint(evt.mapPoint, fset.features[0].geometry.getExtent().expand(9)));
@@ -365,51 +547,7 @@ function ShowFeatureSet(fset, evt) {
     }
 }
 
-//function for locating selected parcel or addr
-function FindTaskResults(results) {
-    map.graphics.clear();
-    //clearing all graphic layers query layers
-    ClearAll();
-    isSpanClicked = false;
-    HideMapTip();
-    dojo.disconnect(mouseMoveHandle);
-    interactiveParcel = false;
-    if (map.getLayer(roadCenterLinesLayerID)) {
-        map.getLayer(roadCenterLinesLayerID).clear();
-    }
-    dojo.byId("txtAddress").value = results.value;
-
-    dojo.byId("txtAddress").defaultText = results.value;
-
-    var layer = map.getLayer(queryGraphicLayer);
-    var lineColor = new dojo.Color();
-    lineColor.setColor(rendererColor);
-
-    var fillColor = new dojo.Color();
-    fillColor.setColor(rendererColor);
-    fillColor.a = 0.25;
-
-    var symbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID,
-                    new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, lineColor, 3), fillColor);
-    results.feature.setSymbol(symbol);
-
-    geometryForBuffer = results.feature.geometry;
-    ringsmultiPoint = new esri.geometry.Multipoint(new esri.SpatialReference({ wkid: 3857 }));
-    for (var i = 0; i < results.feature.geometry.rings[0].length; i++)
-        ringsmultiPoint.addPoint(results.feature.geometry.rings[0][i]);
-    var centerPoint = ringsmultiPoint.getExtent().getCenter();
-
-    map.setExtent(GetExtentFromPolygon(results.feature.geometry.getExtent().expand(4)));
-
-    setTimeout(function () { ShowFindTaskData(results.feature, centerPoint) }, 300);
-    layer.add(results.feature);
-
-    findTasksGraphicClicked = true;
-    graphicLayerClicked = false;
-    polygon = true; //if the parcel is already drawn
-}
-
-//Function to get the extent of polygon
+//Get the extent of polygon
 function GetExtentFromPolygon(extent) {
     var width = extent.getWidth();
     var height = extent.getHeight();
@@ -420,7 +558,7 @@ function GetExtentFromPolygon(extent) {
     return new esri.geometry.Extent(xmin, ymin, xmax, ymax, map.spatialReference);
 }
 
-//function to get the extent of point
+//Get the extent of point
 function CenterMapPoint(mapPoint, extent) {
     var width = extent.getWidth();
     var height = extent.getHeight();
@@ -431,82 +569,8 @@ function CenterMapPoint(mapPoint, extent) {
     return new esri.geometry.Extent(xmin, ymin, xmax, ymax, map.spatialReference);
 }
 
-//function to populate all the parcel ids
-function PopulateSearchItem(featureSet) {
-    var DislayField = [];
-    var features = featureSet;
-    var ieVersion = getInternetExplorerVersion();
-    if (features.length > 0) {
-        if (features.length == 1) {
-            FindTaskResults(featureSet[0]);
-        }
-        else {
-            for (var i = 0; i < featureSet.length; i++) {
-                if (featureSet[i].foundFieldName == "Parcel Identification Number")
-                    DislayField[i] = "Parcel Identification Number";
-                else if (featureSet[i].foundFieldName == "Site Address")
-                    DislayField[i] = "Site Address";
-            }
-            RemoveChildren(dojo.byId('divAddressContainer'));
-            var table = document.createElement("table");
-            var tBody = document.createElement("tbody");
-            table.appendChild(tBody);
-            table.className = "tbl";
-            table.id = "tbl";
-            if (ieVersion.toString() == "7") {          //Patch for fixing overflow-x issue in compatibility mode.
-                table.style.width = "94%";
-                table.style.overflowX = "hidden";
-            }
-            table.cellSpacing = 0;
-            table.cellPadding = 0;
-            for (var i = 0; i < features.length; i++) {
-                var tr = document.createElement("tr");
-                tBody.appendChild(tr);
-                var td1 = document.createElement("td");
-                td1.innerHTML = featureSet[i].feature.attributes[DislayField[i]];
-                td1.className = 'tdAddress';
-                td1.height = 20;
-                td1.id = i;
-                td1.title = 'Click to Locate parcel';
-                td1.setAttribute("parcelId", featureSet[i].feature.attributes["Parcel Identification Number"]);
-                td1.onclick = function () {
-                    FindTaskResults(featureSet[this.id]);
-                    WipeOutControl(dojo.byId('divAddressContainer'), 500);
-                }
-                tr.appendChild(td1);
-            }
-            AnimateAdvanceSearch();
-            var scrollbar_container = document.createElement('div');
-            scrollbar_container.id = "address_container";
-            scrollbar_container.className = "addressScrollbar_container";
-
-            var container = document.createElement("div");
-            container.id = "address_content";
-            container.className = 'addressScrollbar_content';
-
-            if (dojo.isIE < 9) {
-                if (dojo.isIE) {
-                    scrollbar_container.style.height = 127 + "px";
-                    container.style.height = 126 + "px";
-                }
-            }
-            container.appendChild(table);
-            scrollbar_container.appendChild(container);
-            dojo.byId('divAddressContainer').appendChild(scrollbar_container);
-            CreateScrollbar(scrollbar_container, container);
-        }
-        HideLoadingMessage();
-    }
-    else {
-        RemoveChildren(dojo.byId('divAddressContainer'));
-        map.infoWindow.hide();
-        ShowDialog('Error', 'Unable to locate specified address or parcel.');
-        HideLoadingMessage();
-    }
-}
-
-//function for Drawing Polygon Around the Feature
-function DrawPolygon(features) {
+//Draw polygon around the feature
+function DrawPolygon(features, share) {
     var lineColor = new dojo.Color();
     lineColor.setColor(rendererColor);
     var fillColor = new dojo.Color();
@@ -520,13 +584,18 @@ function DrawPolygon(features) {
     var graphicCollection = [];
     var attributeCollection = [];
     for (var i = 0; i < features.length; i++) {
-        if (attributeCollection[features[i].attributes.LOWPARCELID]) {
-            attributeCollection[features[i].attributes.LOWPARCELID].push({ id: features[i].attributes.PARCELID, name: features[i].attributes });
+        if (attributeCollection[features[i].attributes[parcelInformation.LowParcelIdentification]]) {
+            attributeCollection[features[i].attributes[parcelInformation.LowParcelIdentification]].push({ id: features[i].attributes[parcelInformation.ParcelIdentification], name: features[i].attributes });
+            if (!share) {
+                if (i == 1) {
+                    parcelArray.push(features[0].attributes[parcelInformation.ParcelIdentification]);
+                }
+            }
         }
         else {
-            attributeCollection[features[i].attributes.LOWPARCELID] = [];
-            graphicCollection[features[i].attributes.LOWPARCELID] = features[i].geometry;
-            attributeCollection[features[i].attributes.LOWPARCELID].push({ id: features[i].attributes.PARCELID, name: features[i].attributes });
+            attributeCollection[features[i].attributes[parcelInformation.LowParcelIdentification]] = [];
+            graphicCollection[features[i].attributes[parcelInformation.LowParcelIdentification]] = features[i].geometry;
+            attributeCollection[features[i].attributes[parcelInformation.LowParcelIdentification]].push({ id: features[i].attributes[parcelInformation.ParcelIdentification], name: features[i].attributes });
         }
     }
     for (var lowerParcelID in attributeCollection) {
@@ -535,20 +604,23 @@ function DrawPolygon(features) {
         if (featureData.length > 1) {
             for (var i = 0; i < featureData.length; i++) {
                 parcelAttributeData[featureData[i].id] = featureData[i].name;
+                if (i == 0) {
+                    bufferArray.push(featureData[0].name[parcelInformation.ParcelIdentification]);
+                }
             }
         }
         else {
             parcelAttributeData = featureData[0].name;
+            bufferArray.push(featureData[0].name[parcelInformation.ParcelIdentification]);
         }
         var graphic = new esri.Graphic(graphicCollection[lowerParcelID], symbol, parcelAttributeData);
         qglayer.add(graphic);
     }
-
 }
 
-//function to get buffer region around Located parcel/address.
+//Get buffer region around located parcel/address.
 function CreateBuffer(evt) {
-    ShowLoadingMessage('Buffering...');
+    ShowLoadingMessage('Buffering');
     HideMapTip();
     dojo.disconnect(mouseMoveHandle);
     var params = new esri.tasks.BufferParameters();
@@ -558,12 +630,12 @@ function CreateBuffer(evt) {
     csvFormat = dijit.byId('chkCsv').checked;
     occupants = dijit.byId('chkOccupants').checked;
     owners = dijit.byId('chkOwners').checked;
-    //check if atleast owners or occupants is selected
+    //check if at least owners or occupants is selected
     if (dist.value != "") {
         if (!IsNumeric(dist.value)) {
             dist.value = "";
             dist.focus();
-            ShowErrorMessage('spanFileUploadMessage', 'Please enter numeric value.', '#FFFF00');
+            ShowErrorMessage('spanFileUploadMessage', messages.getElementsByTagName("enterNumeric")[0].childNodes[0].nodeValue, '#FFFF00');
         }
         else if (!IsBufferValid(dist.value)) {
             ShowErrorMessage('spanFileUploadMessage', 'Valid buffer range is between 1 to ' + maxBufferDistance + ' feet.', '#FFFF00');
@@ -585,7 +657,7 @@ function CreateBuffer(evt) {
                             params.geometries = [polyLine];
                         }
                         else {
-                            alert("Geometry for Buffer is Null in Create Buffer");
+                            alert(messages.getElementsByTagName("createBuffer")[0].childNodes[0].nodeValue);
                         }
 
                         params.distances = [dist.value];
@@ -595,6 +667,8 @@ function CreateBuffer(evt) {
                             ShowBufferRoad(geometries);
                         });
                         esri.config.defaults.io.alwaysUseProxy = false;
+                        selectedPoint = null;
+                        displayInfo = null;
                         map.infoWindow.hide();
                     }
                     else {
@@ -602,27 +676,27 @@ function CreateBuffer(evt) {
                     }
                 }
                 else {
-                    ShowErrorMessage('spanFileUploadMessage', 'Invalid Avery format. Please select a valid format from the dropdown list.', '#FFFF00');
+                    ShowErrorMessage('spanFileUploadMessage', messages.getElementsByTagName("inValidAveryFormat")[0].childNodes[0].nodeValue, '#FFFF00');
                     HideLoadingMessage();
                 }
             }
             else {
-                ShowErrorMessage('spanFileUploadMessage', 'Select atleast one file format to download.', '#FFFF00');
+                ShowErrorMessage('spanFileUploadMessage', messages.getElementsByTagName("fileSelect")[0].childNodes[0].nodeValue, '#FFFF00');
                 HideLoadingMessage();
             }
         }
         else {
-            ShowErrorMessage('spanFileUploadMessage', 'Select Property Owners or Occupants to notify.', '#FFFF00');
+            ShowErrorMessage('spanFileUploadMessage', messages.getElementsByTagName("selectProperty")[0].childNodes[0].nodeValue, '#FFFF00');
             HideLoadingMessage();
         }
     }
     else {
-        ShowErrorMessage('spanFileUploadMessage', 'Please enter the buffer distance.', '#FFFF00');
+        ShowErrorMessage('spanFileUploadMessage', messages.getElementsByTagName("enterBufferDist")[0].childNodes[0].nodeValue, '#FFFF00');
         HideLoadingMessage();
     }
 }
 
-//function for giving parameters to buffer
+//Fetch parameters to buffer
 function BufferParameters() {
     isSpanClicked = false;
     HideMapTip();
@@ -638,7 +712,7 @@ function BufferParameters() {
         params.geometries = [polygon];
     }
     else {
-        alert("Geometry for Buffer is Null in Create Buffer");
+        alert(messages.getElementsByTagName("createBuffer")[0].childNodes[0].nodeValue);
     }
     params.distances = [dist.value];
     params.unit = esri.tasks.GeometryService.UNIT_FOOT;
@@ -646,20 +720,24 @@ function BufferParameters() {
     esri.config.defaults.io.alwaysUseProxy = true;
     geometryService.buffer(params, ShowBuffer, function (err) { HideLoadingMessage(); alert("Query " + err); });               //querying geometry service for buffered geometry
     esri.config.defaults.io.alwaysUseProxy = false;
+    selectedPoint = null;
+    displayInfo = null;
     map.infoWindow.hide();
     if (findTasksGraphicClicked) {
         findTasksGraphicClicked = false;
         graphicLayerClicked = false;
     }
-    ShowLoadingMessage('Buffering...');
+    ShowLoadingMessage('Buffering');
 }
 
-//function to show selected parcels from feature layer.
+//Function to draw buffer for parcel(s)
 function ShowBuffer(geometries) {
     ClearAll(true);
     HideLoadingMessage();
+    selectedPoint = null;
+    displayInfo = null;
     map.infoWindow.hide();
-    ShowLoadingMessage('Locating Parcels...');
+    ShowLoadingMessage('Locating Parcels');
     HideMapTip();
     dojo.disconnect(mouseMoveHandle);
     var symbol = new esri.symbol.SimpleFillSymbol(
@@ -679,16 +757,16 @@ function ShowBuffer(geometries) {
     query.geometry = geometries[0];
     query.outFields = queryOutFields;
     query.maxAllowableOffset = maxAllowableOffset;
-    //    query.spatialRelationship = esri.tasks.Query.SPATIAL_REL_CONTAINS;
     query.spatialRelationship = esri.tasks.Query.SPATIAL_REL_INTERSECTS;
     query.returnGeometry = true;
     //executing query task for selecting intersecting features
     qTask.execute(query, function (featureSet) { QueryCallback(featureSet, false) });
 }
 
+//Function to draw buffer for road(s)
 function ShowBufferRoad(geometries) {
     ClearAll(true);
-    ShowLoadingMessage('Buffering Adjacent Roads...');
+    ShowLoadingMessage('Buffering Adjacent Roads');
     isSpanClicked = false;
     HideMapTip();
     dojo.disconnect(mouseMoveHandle);
@@ -702,8 +780,6 @@ function ShowBufferRoad(geometries) {
       );
     dojo.forEach(geometries, function (geometry) {
         AddGraphic(map.getLayer(tempBufferLayer), symbol, geometry);
-        //        HideMapTip();
-        //        dojo.disconnect(mouseMoveHandle);
     });
 
     var query = new esri.tasks.Query();
@@ -716,7 +792,7 @@ function ShowBufferRoad(geometries) {
     qTask.execute(query, function (featureSet) { QueryCallback(featureSet, true) });
 }
 
-//Function for handling queryTask callback for avery label and csv generation.
+//Handle queryTask callback for avery label and csv generation.
 function QueryCallback(featureSet, road) {
     if (map.getLayer(queryGraphicLayer)) {
         map.getLayer(queryGraphicLayer).clear();
@@ -726,12 +802,10 @@ function QueryCallback(featureSet, road) {
     var layer = map.getLayer(queryGraphicLayer);
     if (features.length == 0) {
         if (!road) {
-            ShowDialog('Error', 'Parcel not found at current location.');
+            alert(messages.getElementsByTagName("noParcel")[0].childNodes[0].nodeValue);
         } else {
-
-            ShowDialog('Error', 'There are no parcels adjacent to the road within ' + dist.value + ' feet.');
+            alert('There are no parcels adjacent to the road within ' + dist.value + ' feet.');
         }
-
         HideLoadingMessage();
     }
     else {
@@ -742,7 +816,7 @@ function QueryCallback(featureSet, road) {
             }
             map.setExtent(poly.getExtent().expand(3));
 
-            DrawPolygon(features);
+            DrawPolygon(features, false);
 
             interactiveParcel = false;
 
@@ -754,16 +828,16 @@ function QueryCallback(featureSet, road) {
             if (csvFormat == "checked" || csvFormat) {
                 strCsvParam = CreateCsvParam(features);
             }
-
             ExecuteGPTask(pdfFormat, csvFormat, strAveryParam, strCsvParam);
         }
         catch (err) {
             HideLoadingMessage();
-            ShowDialog('Error', err.message);
+            alert(err.message);
         }
     }
 }
-//Function for dynamically creating avery parameter string
+
+//Create dynamic avery parameter string
 function CreateAveryParam(features) {
     try {
         var strAveryParam = '';
@@ -792,7 +866,7 @@ function CreateAveryParam(features) {
         }
         for (var featureCount = 0; featureCount < features.length; featureCount++) {//looping through populated features for occupants
             if (occupants == "checked" || occupants) {                  //if occupants are selected to be displayed
-                if (features[featureCount].attributes.SITEADDRESS) {               //Condition for displaying occupant fields
+                if (features[featureCount].attributes[occupantFields[1]]) {               //Condition for displaying occupant fields
                     for (var fieldCount = 0; fieldCount < occupantFields.length; fieldCount++) { //looping through configurable avery fields for occupants
                         averyFields = occupantFields[fieldCount];
                         if (fieldCount == 1) {
@@ -820,11 +894,11 @@ function CreateAveryParam(features) {
         return strAveryParam;
     }
     catch (err) {
-        ShowDialog(err.Message);
+        alert(err.Message);
     }
 }
 
-//Function for dynamically creating csv parameter string
+//Create dynamic csv parameter string
 function CreateCsvParam(features) {
     var strCsvParam = '';
     for (var featureCount = 0; featureCount < features.length; featureCount++) {//looping through populated features for owners
@@ -859,7 +933,7 @@ function CreateCsvParam(features) {
     }
     for (var featureCount = 0; featureCount < features.length; featureCount++) {//looping through populated features for occupants
         if (occupants == "checked" || occupants) {                  //if occupants are selected to be displayed
-            if (features[featureCount].attributes.SITEADDRESS) {               //Condition for displaying occupant fields
+            if (features[featureCount].attributes[occupantFields[1]]) {               //Condition for displaying occupant fields
                 for (var fieldCount = 0; fieldCount < occupantFields.length; fieldCount++) { //looping through configurable avery fields
                     csvFields = occupantFields[fieldCount];
                     if (fieldCount == 1) {
@@ -895,75 +969,61 @@ function CreateCsvParam(features) {
     return strCsvParam;
 }
 
-
-//function for displaying current location
+//Display current location
 function ShowMyLocation() {
-    if (dojo.coords(dojo.byId('divBaseMapTitleContainer')).h > 0) {
-        WipeOutControl(dojo.byId('divBaseMapTitleContainer'), 400);
-    }
     if (dojo.coords(dojo.byId('divAddressContainer')).h > 0) {
-        WipeOutControl(dojo.byId('divAddressContainer'), 500);
+        HideAddressContainer();
     }
-
-    dijit.byId('imgBaseMap').attr("checked", false);
-    dojo.byId('imgGPS').src = "images/BlueGPS.png";
+    ClearAll();
     navigator.geolocation.getCurrentPosition(
 		function (position) {
-		    ShowLoadingMessage("Finding your current location...");
-		    mapPoint = new esri.geometry.Point(position.coords.longitude, position.coords.latitude, new esri.SpatialReference({ wkid: 102100 }));
+		    ShowLoadingMessage("Finding your current location");
+		    mapPoint = new esri.geometry.Point(position.coords.longitude, position.coords.latitude, map.spatialReference);
 		    var graphicCollection = new esri.geometry.Multipoint(new esri.SpatialReference({ wkid: 4326 }));
 		    graphicCollection.addPoint(mapPoint);
 		    geometryService.project([graphicCollection], map.spatialReference, function (newPointCollection) {
-		        HideLoadingMessage();
+		        for (var bMap = 0; bMap < baseMapLayerCollection.length; bMap++) {
+		            if (map.getLayer(baseMapLayerCollection[bMap].Key).visible) {
+		                var bmap = baseMapLayerCollection[bMap].Key;
+		            }
+		        }
+		        if (!map.getLayer(bmap).fullExtent.contains(newPointCollection[0].getPoint(0))) {
+		            mapPoint = null;
+		            selectedMapPoint = null;
+		            map.getLayer(tempGPSLayer).clear();
+		            map.infoWindow.hide();
+		            HideLoadingMessage();
+		            alert(messages.getElementsByTagName("geoLocation")[0].childNodes[0].nodeValue);
+		            return;
+		        }
+		        map.infoWindow.hide();
 		        mapPoint = newPointCollection[0].getPoint(0);
 		        map.centerAt(mapPoint);
-		        var gpsSymbol = new esri.symbol.PictureMarkerSymbol(defaultImg, 25, 25);
+		        var gpsSymbol = new esri.symbol.PictureMarkerSymbol(locatorSettings.DefaultLocatorSymbol, locatorSettings.MarkupSymbolSize.width, locatorSettings.MarkupSymbolSize.height);
 		        var attr = {
 		            lat: position.coords.longitude,
 		            long: position.coords.latitude
 		        };
 		        var graphic = new esri.Graphic(mapPoint, gpsSymbol, attr, null);
 		        map.getLayer(tempGPSLayer).add(graphic);
-
+		        HideLoadingMessage();
 		    });
 		},
     		function (error) {
     		    HideLoadingMessage();
-    		    if (dojo.byId('imgGPS').src = "images/BlueGPS.png") {
-    		        dojo.byId('imgGPS').src = "images/gps.png";
-    		        var gpsButton = dijit.byId('imgGPSButton');
-    		        gpsButton.attr("checked", false);
-    		    }
     		    switch (error.code) {
     		        case error.TIMEOUT:
-    		            alert(messages.getElementsByTagName("timeOut")[0].childNodes[0].nodeValue);
+    		            alert(messages.getElementsByTagName("geolocationTimeout")[0].childNodes[0].nodeValue);
     		            break;
     		        case error.POSITION_UNAVAILABLE:
-    		            alert(messages.getElementsByTagName("positionUnavailable")[0].childNodes[0].nodeValue);
+    		            alert(messages.getElementsByTagName("geolocationPositionUnavailable")[0].childNodes[0].nodeValue);
     		            break;
     		        case error.PERMISSION_DENIED:
-    		            alert(messages.getElementsByTagName("permissionDenied")[0].childNodes[0].nodeValue);
+    		            alert(messages.getElementsByTagName("geolocationPermissionDenied")[0].childNodes[0].nodeValue);
     		            break;
     		        case error.UNKNOWN_ERROR:
-    		            alert(messages.getElementsByTagName("unknownError")[0].childNodes[0].nodeValue);
+    		            alert(messages.getElementsByTagName("geolocationUnKnownError")[0].childNodes[0].nodeValue);
     		            break;
     		    }
     		}, { timeout: 10000 });
-}
-
-//function to find custom anchor point
-function GetInfoWindowAnchor(pt, infoWindowWidth) {
-    var verticalAlign;
-    if (pt.y + 298 < map.height) {
-        verticalAlign = "LOWER";
-    }
-    else {
-        verticalAlign = "UPPER";
-    }
-    if ((pt.x + infoWindowWidth) > map.width) {
-        return esri.dijit.InfoWindow["ANCHOR_" + verticalAlign + "LEFT"];
-    }
-    else {
-        return esri.dijit.InfoWindow["ANCHOR_" + verticalAlign + "RIGHT"];
-    }
 }

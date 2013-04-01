@@ -1,5 +1,5 @@
 ﻿/** @license
- | Version 10.1.1
+ | Version 10.2
  | Copyright 2012 Esri
  |
  | Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,7 @@
  | See the License for the specific language governing permissions and
  | limitations under the License.
  */
-//function for creating base map componenets
+//Create basemap components
 function CreateBaseMapComponent() {
     for (var i = 0; i < baseMapLayerCollection.length; i++) {
         map.addLayer(CreateBaseMapLayer(baseMapLayerCollection[i].MapURL, baseMapLayerCollection[i].Key, (i == 0) ? true : false));
@@ -41,7 +41,7 @@ function CreateBaseMapComponent() {
     }
 }
 
-//function for creating base map elements
+//Create basemap images with respective titles
 function CreateBaseMapElement(baseMapLayerInfo) {
     var divContainer = document.createElement("div");
     divContainer.className = "baseMapContainerNode";
@@ -64,7 +64,6 @@ function CreateBaseMapElement(baseMapLayerInfo) {
     divContainer.appendChild(spanBaseMapText);
 
     if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)) { //test for MSIE x.x;
-
         if (dojo.isIE == 7) {
             divContainer.style.paddingBottom = "10px";
         }
@@ -72,7 +71,13 @@ function CreateBaseMapElement(baseMapLayerInfo) {
     return divContainer;
 }
 
-//function for changing the  base map by click
+//Create basemap layer on the map
+function CreateBaseMapLayer(layerURL, layerId, isVisible) {
+    var layer = new esri.layers.ArcGISTiledMapServiceLayer(layerURL, { id: layerId, visible: isVisible });
+    return layer;
+}
+
+//Toggle basemap layer
 function ChangeBaseMap(spanControl) {
     HideMapLayers();
     var key = spanControl.getAttribute('layerId');
@@ -94,13 +99,7 @@ function ChangeBaseMap(spanControl) {
     }
 }
 
-//function for adding base map
-function CreateBaseMapLayer(layerURL, layerId, isVisible) {
-    var layer = new esri.layers.ArcGISTiledMapServiceLayer(layerURL, { id: layerId, visible: isVisible });
-    return layer;
-}
-
-//function for hiding  base map
+//Hide layers
 function HideMapLayers() {
     for (var i = 0; i < baseMapLayerCollection.length; i++) {
         var layer = map.getLayer(baseMapLayerCollection[i].Key);
@@ -110,22 +109,27 @@ function HideMapLayers() {
     }
 }
 
-//function for toggling the  base map container
+//Animate basemap container
 function ShowHideBaseMapComponent() {
-    dijit.byId('imgGPSButton').attr("checked", false);
-    dojo.byId('imgGPS').src = "images/gps.png";
-    var node = dojo.byId('divBaseMapTitleContainer');
-    var anim = dojo.byId('divContainer');
-    var divNode = dojo.byId('divAddressContainer');
-    if (dojo.coords(divNode).h > 0) {
-        WipeOutControl(divNode, 400);
-    }
-
-    if (dojo.coords(node).h > 0) {
-        WipeOutControl(node, 400);
+    HideShareAppContainer();
+    HideAddressContainer();
+    if (dojo.coords("divLayerContainer").h > 0) {
+        dojo.replaceClass("divLayerContainer", "hideContainerHeight", "showContainerHeight");
+        dojo.byId('divLayerContainer').style.height = '0px';
     }
     else {
-        WipeInControl(node, node.style.height, 400);
+        dojo.byId('divLayerContainer').style.height = 115 + "px";
+        dojo.byId('divLayerContentHolder').style.height = 105 + "px";
+        dojo.byId('divLayerContentHolder').style.top = "0px";
+        dojo.replaceClass("divLayerContainer", "showContainerHeight", "hideContainerHeight");
     }
+    setTimeout(function () {
+        CreateScrollbar(dojo.byId("divLayerContainerHolder"), dojo.byId("divLayerContentHolder"));
+    }, 500);
 }
 
+//Hide base map container
+function HideBaseMapLayerContainer() {
+    dojo.replaceClass("divLayerContainer", "hideContainerHeight", "showContainerHeight");
+    dojo.byId('divLayerContainer').style.height = '0px';
+}
