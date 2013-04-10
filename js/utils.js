@@ -1976,12 +1976,10 @@ function HideShareAppContainer() {
     dojo.byId('divAppContainer').style.height = '0px';
 }
 
-//Get map Extent
+//Get current map Extent
 function GetMapExtent() {
-    var extents = map.extent.xmin.toString() + ",";
-    extents += map.extent.ymin.toString() + ",";
-    extents += map.extent.xmax.toString() + ",";
-    extents += map.extent.ymax.toString();
+    var extents = Math.round(map.extent.xmin).toString() + "," + Math.round(map.extent.ymin).toString() + "," +
+                  Math.round(map.extent.xmax).toString() + "," + Math.round(map.extent.ymax).toString();
     return (extents);
 }
 
