@@ -80,5 +80,5 @@ limitations under the License.
 A copy of the license is available in the repository's
 [license.txt](https://raw.github.com/Esri/land-use-public-notification/master/license.txt) file.
 
-[](Esri Tags: Local Government Land Use Public Notification)
+[](Esri Tags: Local-Government Local Government Land Use Public Notification)
 [](Esri Language: JavaScript)
