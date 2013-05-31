@@ -91,9 +91,9 @@ dojo.declare("js.config", null, {
     // OPERATIONAL DATA SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     // Map Services for operational layers
-    TaxParcelQueryMap: "http://203.199.47.146/arcgis/rest/services/PublicNotification/TaxParcelQuery/MapServer",
-    TaxParcelPublishingLayer: "http://203.199.47.146/arcgis/rest/services/PublicNotification/TaxParcelQuery/MapServer/0",
-    RoadCenterLines: "http://203.199.47.146/arcgis/rest/services/PublicNotification/RoadCenterlineQuery/MapServer/0",
+    TaxParcelQueryMap: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/TaxParcelQuery/MapServer",
+    TaxParcelPublishingLayer: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/TaxParcelQuery/MapServer/0",
+    RoadCenterLines: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // INFO-WINDOW SETTINGS
