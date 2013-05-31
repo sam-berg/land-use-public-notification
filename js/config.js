@@ -212,10 +212,10 @@ dojo.declare("js.config", null, {
     // Geoprocessing Services
     // ------------------------------------------------------------------------------------------------------------------------
     // Geoprocessing services for PDF creation
-    ServiceTask: "http://arcgis-two-1334003536.us-west-1.elb.amazonaws.com/arcgis/rest/services/Together/GPServer/Generate%20Avery%20Labels",
+    ServiceTask: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/PublicNotification/GPServer/GenerateAveryLabels",
 
     // Geoprocessing services for CSV file creation
-    CsvServiceTask: "http://arcgis-two-1334003536.us-west-1.elb.amazonaws.com/arcgis/rest/services/Together/GPServer/Generate%20CSV%20Mailing%20List",
+    CsvServiceTask: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/PublicNotification/GPServer/GenerateCSVMailingList",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // Offset distance
