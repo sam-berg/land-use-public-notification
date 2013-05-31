@@ -75,13 +75,13 @@ dojo.declare("js.config", null, {
     BaseMapLayers: [{
         Key: "parcelMap",
         ThumbnailSource: "images/Parcel map.jpg",
-        Name: "Parcel Map",
-        MapURL: "http://localgovtemplates.esri.com/ArcGIS/rest/services/ParcelPublicAccessforBloomfield/MapServer"
+        Name: "Streets",
+        MapURL: "http://arcgis-tenone2012-1974758903.us-west-1.elb.amazonaws.com/arcgis/rest/services/ParcelPublicAccessMI/MapServer"
     }, {
         Key: "taxMap",
         ThumbnailSource: "images/Tax map.jpg",
         Name: "Tax Map",
-        MapURL: "http://localgovtemplates.esri.com/ArcGIS/rest/services/ParcelIndustry/MapServer"
+        MapURL: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/TaxParcelMI/MapServer"
     }],
 
     // Initial map extent. Use comma (,) to separate values and don't delete the last comma
@@ -205,7 +205,7 @@ dojo.declare("js.config", null, {
     // GEOMETRY SERVICE SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     // Set geometry service URL
-    GeometryService: "http://203.199.47.146/arcgis/rest/services/Utilities/Geometry/GeometryServer",
+    GeometryService: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/Utilities/Geometry/GeometryServer",
 
     //Customn Data for Public Notification Application.
     // ------------------------------------------------------------------------------------------------------------------------
