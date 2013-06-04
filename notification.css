@@ -662,6 +662,8 @@ body, html
 /* Tooltip Dialog */
 .claro .dijitTooltipContainer
 {
+    border: none;
+    background-image: none;
     background-color: #000000 !important;
     color: #ffffff !important; /*padding: 2px 7px;*/
     padding: 0px 0px;
