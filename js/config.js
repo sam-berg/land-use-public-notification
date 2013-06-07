@@ -1,4 +1,5 @@
-﻿/** @license
+﻿/*global dojo */
+/** @license
  | Version 10.2
  | Copyright 2012 Esri
  |
@@ -184,18 +185,15 @@ dojo.declare("js.config", null, {
     LocatorSettings: {
         DefaultLocatorSymbol: "images/RedPushpin.png",
         MarkupSymbolSize: { width: 35, height: 35 },
-        Locators: [
-          {
-              DisplayText: "Address/Parcel",
-              DefaultValue: "2830 W Hickory Grove Rd",
-              DisplayField: "Parcel Identification Number,Site Address"
-          },
-          {
-              DisplayText: "Street/Road",
-              DefaultValue: "Thedford Rd",
-              DisplayField: "FULLNAME"
-          }
-        ]
+        Locators: [{
+            DisplayText: "Address/Parcel",
+            DefaultValue: "2830 W Hickory Grove Rd",
+            DisplayField: "Parcel Identification Number,Site Address"
+        }, {
+            DisplayText: "Street/Road",
+            DefaultValue: "Thedford Rd",
+            DisplayField: "FULLNAME"
+        }]
     },
 
     //Road segment color
@@ -289,12 +287,11 @@ dojo.declare("js.config", null, {
     // SETTINGS FOR MAP SHARING
     // ------------------------------------------------------------------------------------------------------------------------
     // Set URL for TinyURL service, and URLs for social media
-    MapSharingOptions:
-          {
-              TinyURLServiceURL: "http://api.bit.ly/v3/shorten?login=esri&apiKey=R_65fd9891cd882e2a96b99d4bda1be00e&uri=${0}&format=json",
-              TinyURLResponseAttribute: "data.url",
-              FacebookShareURL: "http://www.facebook.com/sharer.php?u=${0}&t=Public%20Notification",
-              TwitterShareURL: "http://twitter.com/home/?status=Public%20Notification ${0}",
-              ShareByMailLink: "mailto:%20?subject=Checkout%20this%20Public%20Notification%20map!&body=${0}"
-          }
+    MapSharingOptions: {
+        TinyURLServiceURL: "http://api.bit.ly/v3/shorten?login=esri&apiKey=R_65fd9891cd882e2a96b99d4bda1be00e&uri=${0}&format=json",
+        TinyURLResponseAttribute: "data.url",
+        FacebookShareURL: "http://www.facebook.com/sharer.php?u=${0}&t=Public%20Notification",
+        TwitterShareURL: "http://twitter.com/home/?status=Public%20Notification ${0}",
+        ShareByMailLink: "mailto:%20?subject=Checkout%20this%20Public%20Notification%20map!&body=${0}"
+    }
 });
