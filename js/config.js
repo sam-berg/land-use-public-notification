@@ -292,6 +292,6 @@ dojo.declare("js.config", null, {
         TinyURLResponseAttribute: "data.url",
         FacebookShareURL: "http://www.facebook.com/sharer.php?u=${0}&t=Public%20Notification",
         TwitterShareURL: "http://twitter.com/home/?status=Public%20Notification ${0}",
-        ShareByMailLink: "mailto:%20?subject=Checkout%20this%20Public%20Notification%20map!&body=${0}"
+        ShareByMailLink: "mailto:%20?subject=Check%20out%20this%20Public%20Notification%20map!&body=${0}"
     }
 });
