@@ -77,12 +77,12 @@ dojo.declare("js.config", null, {
         Key: "parcelMap",
         ThumbnailSource: "images/Parcel map.jpg",
         Name: "Streets",
-        MapURL: "http://arcgis-tenone2012-1974758903.us-west-1.elb.amazonaws.com/arcgis/rest/services/ParcelPublicAccessMI/MapServer"
+        MapURL: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/ParcelPublicAccessMI/MapServer"
     }, {
         Key: "taxMap",
         ThumbnailSource: "images/Tax map.jpg",
         Name: "Tax Map",
-        MapURL: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/TaxParcelMI/MapServer"
+        MapURL: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/TaxParcelMI/MapServer"
     }],
 
     // Initial map extent. Use comma (,) to separate values and don't delete the last comma
@@ -92,9 +92,9 @@ dojo.declare("js.config", null, {
     // OPERATIONAL DATA SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     // Map Services for operational layers
-    TaxParcelQueryMap: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/TaxParcelQuery/MapServer",
-    TaxParcelPublishingLayer: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/TaxParcelQuery/MapServer/0",
-    RoadCenterLines: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
+    TaxParcelQueryMap: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/TaxParcelQuery/MapServer",
+    TaxParcelPublishingLayer: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/TaxParcelQuery/MapServer/0",
+    RoadCenterLines: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com//arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // INFO-WINDOW SETTINGS
