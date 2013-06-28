@@ -77,12 +77,12 @@ dojo.declare("js.config", null, {
         Key: "parcelMap",
         ThumbnailSource: "images/Parcel map.jpg",
         Name: "Streets",
-        MapURL: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/ParcelPublicAccessMI/MapServer"
+        MapURL: "http://tryitlive.arcgis.com/arcgis/rest/services/ParcelPublicAccessMI/MapServer"
     }, {
         Key: "taxMap",
         ThumbnailSource: "images/Tax map.jpg",
         Name: "Tax Map",
-        MapURL: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/TaxParcelMI/MapServer"
+        MapURL: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelMI/MapServer"
     }],
 
     // Initial map extent. Use comma (,) to separate values and don't delete the last comma
@@ -92,9 +92,9 @@ dojo.declare("js.config", null, {
     // OPERATIONAL DATA SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     // Map Services for operational layers
-    TaxParcelQueryMap: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/TaxParcelQuery/MapServer",
-    TaxParcelPublishingLayer: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com/arcgis/rest/services/TaxParcelQuery/MapServer/0",
-    RoadCenterLines: "http://tryitlive-361356583.us-west-2.elb.amazonaws.com//arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
+    TaxParcelQueryMap: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelQuery/MapServer",
+    TaxParcelPublishingLayer: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelQuery/MapServer/0",
+    RoadCenterLines: "http://tryitlive.arcgis.com//arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // INFO-WINDOW SETTINGS
@@ -203,17 +203,17 @@ dojo.declare("js.config", null, {
     // GEOMETRY SERVICE SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     // Set geometry service URL
-    GeometryService: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/Utilities/Geometry/GeometryServer",
+    GeometryService: "http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer",
 
     //Customn Data for Public Notification Application.
     // ------------------------------------------------------------------------------------------------------------------------
     // Geoprocessing Services
     // ------------------------------------------------------------------------------------------------------------------------
     // Geoprocessing services for PDF creation
-    ServiceTask: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/PublicNotification/GPServer/GenerateAveryLabels",
+    ServiceTask: "http://ec2-54-214-169-132.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/PublicNotification/GPServer/GenerateAveryLabels",
 
     // Geoprocessing services for CSV file creation
-    CsvServiceTask: "http://ec2-54-214-140-9.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/PublicNotification/GPServer/GenerateCSVMailingList",
+    CsvServiceTask: "http://ec2-54-214-169-132.us-west-2.compute.amazonaws.com:6080/arcgis/rest/services/PublicNotification/GPServer/GenerateCSVMailingList",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // Offset distance
