@@ -63,7 +63,7 @@ dojo.declare("js.config", null, {
     ApplicationIcon: "images/LGP_img.PNG",
 
     // Set splash window content - Message that appears when the application starts
-    SplashScreenMessage: "<b>Land Use Public Notification</b> <br/> <hr/> <br/>The <b>Land Use Public Notification</b> application allows local government staff to identify properties within a given distance (buffer) of a subject property or roadway and generate mailing labels and/or a structured text file for owners and occupants that fall within the buffer.<br/><br/>The process of public notification allows adjoining or nearby property owners and others, the opportunity to look at a proposed development, consider the likely impacts the proposal may have on them, and provide comment (either positive or negative) about the proposal prior to a decision being made.<br/><br/>",
+    SplashScreenMessage: "<b>Land Use Public Notification</b> <br/> <hr/> <br/>The <b>Land Use Public Notification</b> application allows local government staff to identify properties within a given distance (buffer) of a subject property or roadway and generate mailing labels and/or a structured text file for owners and occupants that fall within the buffer.<br/><br/>The process of public notification allows adjoining or nearby property owners and others the opportunity to look at a proposed development, consider the likely impacts the proposal may have on them, and provide comment (either positive or negative) about the proposal prior to a decision being made.<br/><br/>",
 
     // Set URL of help page/portal
     HelpURL: "help.htm",
