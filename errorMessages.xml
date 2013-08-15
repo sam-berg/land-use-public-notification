@@ -28,15 +28,15 @@
     <unableToLocateParcel>Unable to locate specified address or parcel.</unableToLocateParcel>
     <noResults>No results found.</noResults>
     <noParcel>Parcel not found at current location.</noParcel>
-    <unableToPerform>Unable To Perform Operation, Invalid Geometry.</unableToPerform>
+    <unableToPerform>Unable to perform operation: invalid geometry.</unableToPerform>
     <noRoad>Road not found at current location.</noRoad>
     <inValidAveryFormat>Invalid Avery format. Please select a valid format from the dropdown list.</inValidAveryFormat>
-    <fileSelect>Select atleast one file format to download.</fileSelect>
+    <fileSelect>Select at least one file format to download.</fileSelect>
     <selectProperty>Select Property Owners or Occupants to notify.</selectProperty>
     <enterBufferDist>Please enter the buffer distance.</enterBufferDist>
     <enterNumeric>Please enter numeric value.</enterNumeric>
-    <createBuffer>Geometry for Buffer is Null in Create Buffer</createBuffer>
-    <noDataAvailable>Data not available for this particular location</noDataAvailable>
+    <createBuffer>Geometry for buffer is null in create buffer.</createBuffer>
+    <noDataAvailable>Data not available for this particular location.</noDataAvailable>
     <fetchRoadInformation>An error occured while fetching road information.</fetchRoadInformation>
-    <exceedTimeout>Unable to search, timeout exceeded.</exceedTimeout>
+    <exceedTimeout>Unable to search: timeout exceeded.</exceedTimeout>
 </Messages>
