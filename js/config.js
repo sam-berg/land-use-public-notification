@@ -94,7 +94,7 @@ dojo.declare("js.config", null, {
     // Map Services for operational layers
     TaxParcelQueryMap: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelQuery/MapServer",
     TaxParcelPublishingLayer: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelQuery/MapServer/0",
-    RoadCenterLines: "http://tryitlive.arcgis.com//arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
+    RoadCenterLines: "http://tryitlive.arcgis.com/arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // INFO-WINDOW SETTINGS
