@@ -266,6 +266,8 @@ function ShowFindTaskData(feature, mapPoint) {
     for (var key = 0; key < infoPopupFieldsCollection.length; key++) {
         var tr = document.createElement("tr");
         tBody.appendChild(tr);
+
+        // Create the row's label
         var td1 = document.createElement("td");
         td1.innerHTML = infoPopupFieldsCollection[key].DisplayText;
         td1.className = 'tdDisplayField';
@@ -274,28 +276,34 @@ function ShowFindTaskData(feature, mapPoint) {
         var td2 = document.createElement("td");
         td2.className = 'tdValueField';
         td2.height = 20;
-        if (infoPopupFieldsCollection[key].AliasField.split(',').length >= 1) {
-            var notApplicableCounter = 0;
-            for (i = 0; i < infoPopupFieldsCollection[key].AliasField.split(',').length; i++) {
-                if (feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]] == "Null" || !feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]])
-                    notApplicableCounter++;
+
+        // Find the value field(s) for the row
+        var valueString = "";
+
+        var aliases = infoPopupFieldsCollection[key].AliasField.split(',');
+        dojo.forEach(aliases, function (term) {
+            var value = feature.attributes[term];
+            if (value && value !== "Null") {
+                valueString += value + " ";
             }
-            if (notApplicableCounter == infoPopupFieldsCollection[key].AliasField.split(',').length)
-                td2.innerHTML += showNullAs;
-            else {
-                for (i = 0; i < infoPopupFieldsCollection[key].AliasField.split(',').length; i++) {
-                    if ((feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]] != "Null" && feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]]))
-                        td2.innerHTML += feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]] + " ";
+        });
+
+        if (valueString.length === 0) {
+            var fieldNames = infoPopupFieldsCollection[key].FieldName.split(',');
+            dojo.forEach(fieldNames, function (term) {
+                var value = feature.attributes[term];
+                if (value && value !== "Null") {
+                    valueString += value + " ";
                 }
-                td2.innerHTML = td2.innerHTML.slice(0, -1);
-            }
+            });
         }
-        else {
-            if (feature.attributes[infoPopupFieldsCollection[key].AliasField] == "Null" || !feature.attributes[infoPopupFieldsCollection[key].AliasField])
-                td2.innerHTML = showNullAs;
-            else
-                td2.innerHTML = feature.attributes[infoPopupFieldsCollection[key].AliasField];
+
+        if (valueString.length === 0) {
+            valueString = showNullAs;
         }
+        td2.innerHTML = valueString;
+
+        // Add label and value to table row
         tr.appendChild(td1);
         tr.appendChild(td2);
     }
@@ -375,18 +383,24 @@ function ShowFindTaskData(feature, mapPoint) {
     ResetInfoWindowContent(detailsTab);
 
     map.infoWindow.resize(infoPopupWidth, infoPopupHeight);
-    var infoTitle = feature.attributes[infoWindowTitle];
-    if (infoTitle != "Null") {
-        if (infoTitle.length > 25) {
-            var title = infoTitle.trimString(25);
-            dojo.byId("tdInfoHeader").innerHTML = title;
+    var possibleTitleFields = infoWindowTitle.split(",");
+    var infoTitle = "";
+    dojo.some(possibleTitleFields, function (field) {
+        if (feature.attributes[field] && feature.attributes[field] !== "Null") {
+            infoTitle = feature.attributes[field];
+            return true;
         }
-        else {
+        return false;
+    });
+    if (infoTitle.length > 0) {
+        if (infoTitle.length > 35) {
+            var title = infoTitle.trimString(35);
+            dojo.byId("tdInfoHeader").innerHTML = title;
+        } else {
             dojo.byId("tdInfoHeader").innerHTML = infoTitle;
         }
         dojo.byId("tdInfoHeader").title = infoTitle;
-    }
-    else {
+    } else {
         dojo.byId("tdInfoHeader").title = showNullAs;
     }
 
@@ -435,7 +449,8 @@ function ShowResults(result) {
 //function called to show details of feature while clicked on graphic layer
 function ShowFeatureDetails(feature, mapPoint) {
     if (feature.attributes) {
-        if (feature.attributes[parcelInformation.ParcelIdentification] || feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[0]]) {
+        if (feature.attributes[parcelInformation.ParcelIdentification] ||
+            feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[0]]) {
             ShowUniqueParcel(feature, mapPoint);
         }
         else {
@@ -528,59 +543,63 @@ function ShowUniqueParcel(feature, mapPoint) {
             td2.className = 'tdValueField';
             td2.height = 20;
             if (feature.attributes[parcelInformation.ParcelIdentification]) {
-                if (infoPopupFieldsCollection[key].FieldName.split(',').length > 1) {
+                var fieldName = infoPopupFieldsCollection[key].FieldName;
+                var fieldNames = fieldName.split(',');
+                if (fieldNames.length > 1) {
                     var notApplicableCounter = 0;
-                    for (i = 0; i < infoPopupFieldsCollection[key].FieldName.split(',').length; i++) {
-                        if (!feature.attributes[infoPopupFieldsCollection[key].FieldName.split(',')[i]])
+                    for (i = 0; i < fieldNames.length; i++) {
+                        if (!feature.attributes[fieldNames[i]])
                             notApplicableCounter++;
                     }
-                    if (notApplicableCounter == infoPopupFieldsCollection[key].FieldName.split(',').length)
+                    if (notApplicableCounter == fieldNames.length)
                         td2.innerHTML += showNullAs;
                     else {
-                        for (i = 0; i < infoPopupFieldsCollection[key].FieldName.split(',').length; i++) {
-                            if (feature.attributes[infoPopupFieldsCollection[key].FieldName.split(',')[i]])
-                                td2.innerHTML += feature.attributes[infoPopupFieldsCollection[key].FieldName.split(',')[i]] + " ";
+                        for (i = 0; i < fieldNames.length; i++) {
+                            if (feature.attributes[fieldNames[i]])
+                                td2.innerHTML += feature.attributes[fieldNames[i]] + " ";
                         }
                         td2.innerHTML = td2.innerHTML.slice(0, -1);
                     }
                 }
                 else {
-                    if (feature.attributes[infoPopupFieldsCollection[key].FieldName]) {
-                        if (!feature.attributes[infoPopupFieldsCollection[key].FieldName]) {
+                    if (feature.attributes[fieldName]) {
+                        if (!feature.attributes[fieldName]) {
                             td2.innerHTML = showNullAs;
                         } else {
-                            td2.innerHTML = feature.attributes[infoPopupFieldsCollection[key].FieldName];
+                            td2.innerHTML = feature.attributes[fieldName];
                         }
                     }
                     else
-                        if (feature.attributes[infoPopupFieldsCollection[key].FieldName]) {
-                            td2.innerHTML = feature.attributes[infoPopupFieldsCollection[key].FieldName];
+                        if (feature.attributes[fieldName]) {
+                            td2.innerHTML = feature.attributes[fieldName];
                         } else {
                             td2.innerHTML = showNullAs;
                         }
                 }
             } else {
-                if (infoPopupFieldsCollection[key].AliasField.split(',').length >= 1) {
+                var aliasField = infoPopupFieldsCollection[key].AliasField;
+                var aliases = aliasField.split(',');
+                if (aliases.length >= 1) {
                     var notApplicableCounter = 0;
-                    for (i = 0; i < infoPopupFieldsCollection[key].AliasField.split(',').length; i++) {
-                        if (feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]] == "Null" || !feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]])
+                    for (i = 0; i < aliases.length; i++) {
+                        if (feature.attributes[aliases[i]] == "Null" || !feature.attributes[aliases[i]])
                             notApplicableCounter++;
                     }
-                    if (notApplicableCounter == infoPopupFieldsCollection[key].AliasField.split(',').length)
+                    if (notApplicableCounter == aliases.length)
                         td2.innerHTML += showNullAs;
                     else {
-                        for (i = 0; i < infoPopupFieldsCollection[key].AliasField.split(',').length; i++) {
-                            if ((feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]] != "Null" && feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]]))
-                                td2.innerHTML += feature.attributes[infoPopupFieldsCollection[key].AliasField.split(',')[i]] + " ";
+                        for (i = 0; i < aliases.length; i++) {
+                            if ((feature.attributes[aliases[i]] != "Null" && feature.attributes[aliases[i]]))
+                                td2.innerHTML += feature.attributes[aliases[i]] + " ";
                         }
                         td2.innerHTML = td2.innerHTML.slice(0, -1);
                     }
                 }
                 else {
-                    if (feature.attributes[infoPopupFieldsCollection[key].AliasField] == "Null" || !feature.attributes[infoPopupFieldsCollection[key].AliasField])
+                    if (feature.attributes[aliasField] == "Null" || !feature.attributes[aliasField])
                         td2.innerHTML = showNullAs;
                     else
-                        td2.innerHTML = feature.attributes[infoPopupFieldsCollection[key].AliasField];
+                        td2.innerHTML = feature.attributes[aliasField];
                 }
             }
             tr.appendChild(td1);
@@ -660,57 +679,13 @@ function ShowUniqueParcel(feature, mapPoint) {
 
         map.infoWindow.resize(infoPopupWidth, infoPopupHeight);
         if (feature.attributes[parcelInformation.SiteAddress]) {
-            if (feature.attributes[parcelInformation.SiteAddress].length > 25) {
+            if (feature.attributes[parcelInformation.SiteAddress].length > 35) {
                 var title = feature.attributes[parcelInformation.SiteAddress];
-                dojo.byId("tdInfoHeader").innerHTML = title.substring(0, 10);
-            }
-            else {
+                dojo.byId("tdInfoHeader").innerHTML = title.trimString(35);
+            } else {
                 dojo.byId("tdInfoHeader").innerHTML = feature.attributes[parcelInformation.SiteAddress];
-
-                if (mapPoint) {
-                    if (mapPoint.mapPoint) {
-                        selectedPoint = mapPoint.mapPoint;
-                        map.setExtent(GetBrowserMapExtent(mapPoint.mapPoint));
-                    }
-                    else {
-                        selectedPoint = mapPoint;
-
-                        var extent = GetQuerystring('extent');
-                        if (extent != "") {
-                            zoomExtent = extent.split(',');
-                            var shareExtent = new esri.geometry.Extent(parseFloat(zoomExtent[0]), parseFloat(zoomExtent[1]), parseFloat(zoomExtent[2]), parseFloat(zoomExtent[3]), map.spatialReference);
-                            map.setExtent(shareExtent);
-                        }
-                        else {
-                            map.setExtent(GetBrowserMapExtent(mapPoint));
-                        }
-
-
-                    }
-                    setTimeout(function () {
-                        var screenPoint = map.toScreen(selectedPoint);
-                        screenPoint.y = map.height - screenPoint.y;
-                        map.infoWindow.setLocation(screenPoint);
-                        map.infoWindow.show(screenPoint);
-                    }, 500);
-                }
-                return;
             }
-        }
-        else {
-            dojo.byId("tdInfoHeader").innerHTML = showNullAs;
-        }
-
-        if (feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[1]]) {
-            if (feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[1]].length > 25) {
-                var title = feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[1]];
-                dojo.byId("tdInfoHeader").innerHTML = title.substring(0, 10);
-            }
-            else {
-                dojo.byId("tdInfoHeader").innerHTML = feature.attributes[locatorSettings.Locators[0].DisplayField.split(",")[1]];
-            }
-        }
-        else {
+        } else {
             dojo.byId("tdInfoHeader").innerHTML = showNullAs;
         }
 
@@ -718,16 +693,16 @@ function ShowUniqueParcel(feature, mapPoint) {
             if (mapPoint.mapPoint) {
                 selectedPoint = mapPoint.mapPoint;
                 map.setExtent(GetBrowserMapExtent(mapPoint.mapPoint));
-            }
-            else {
+            } else {
                 selectedPoint = mapPoint;
                 var extent = GetQuerystring('extent');
                 if (extent != "") {
                     zoomExtent = extent.split(',');
-                    var shareExtent = new esri.geometry.Extent(parseFloat(zoomExtent[0]), parseFloat(zoomExtent[1]), parseFloat(zoomExtent[2]), parseFloat(zoomExtent[3]), map.spatialReference);
+                    var shareExtent = new esri.geometry.Extent(
+                        parseFloat(zoomExtent[0]), parseFloat(zoomExtent[1]), parseFloat(zoomExtent[2]), parseFloat(zoomExtent[3]),
+                        map.spatialReference);
                     map.setExtent(shareExtent);
-                }
-                else {
+                } else {
                     map.setExtent(GetBrowserMapExtent(mapPoint));
                 }
             }
@@ -1651,28 +1626,30 @@ function ShowParcelDetail(attr) {
         var td2 = document.createElement("td");
         td2.className = 'tdValueField';
         td2.height = 20;
-        if (infoPopupFieldsCollection[key].FieldName.split(',').length > 1) {
+        var fieldName = infoPopupFieldsCollection[key].FieldName;
+        var fieldNames = fieldName.split(',');
+        if (fieldNames.length > 1) {
             var notApplicableCounter = 0;
-            for (i = 0; i < infoPopupFieldsCollection[key].FieldName.split(',').length; i++) {
-                if (!attr[infoPopupFieldsCollection[key].FieldName.split(',')[i]])
+            for (i = 0; i < fieldNames.length; i++) {
+                if (!attr[fieldNames[i]])
                     notApplicableCounter++;
             }
-            if (notApplicableCounter == infoPopupFieldsCollection[key].FieldName.split(',').length)
+            if (notApplicableCounter == fieldNames.length)
                 td2.innerHTML += showNullAs;
             else {
-                for (i = 0; i < infoPopupFieldsCollection[key].FieldName.split(',').length; i++) {
+                for (i = 0; i < fieldNames.length; i++) {
 
-                    if (attr[infoPopupFieldsCollection[key].FieldName.split(',')[i]])
-                        td2.innerHTML += attr[infoPopupFieldsCollection[key].FieldName.split(',')[i]] + " ";
+                    if (attr[fieldNames[i]])
+                        td2.innerHTML += attr[fieldNames[i]] + " ";
                 }
                 td2.innerHTML = td2.innerHTML.slice(0, -1);
             }
         }
         else {
-            if (attr[infoPopupFieldsCollection[key].FieldName] == null)
+            if (attr[fieldName] == null)
                 td2.innerHTML = showNullAs;
             else
-                td2.innerHTML = attr[infoPopupFieldsCollection[key].FieldName];
+                td2.innerHTML = attr[fieldName];
         }
         tr.appendChild(td1);
         tr.appendChild(td2);
@@ -1682,9 +1659,9 @@ function ShowParcelDetail(attr) {
     CreateScrollbar(scrollbar_container, content);
 
     if (attr[parcelInformation.SiteAddress]) {
-        if (attr[parcelInformation.SiteAddress].length > 25) {
+        if (attr[parcelInformation.SiteAddress].length > 35) {
             var title = attr[parcelInformation.SiteAddress];
-            dojo.byId("tdInfoHeader").innerHTML = title.substring(0, 10);
+            dojo.byId("tdInfoHeader").innerHTML = title.trimString(35);
         }
         else {
             dojo.byId("tdInfoHeader").innerHTML = attr[parcelInformation.SiteAddress];
