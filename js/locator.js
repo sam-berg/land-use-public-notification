@@ -229,17 +229,18 @@ function PopulateSearchItem(searchText, featureSet) {
         var ieVersion = getInternetExplorerVersion();
         if (features.length > 0) {
             // Find the full text of the first attribute that contains the match
+            var whereSearchText = searchText.toUpperCase();
             for (var i = 0; i < features.length; i++) {
-                var whereSearchText = searchText.toUpperCase();
-                var attributes = features[i].attributes;
-                for (var key in attributes) {
-                    var value = attributes[key];
+                var feature = features[i];
+                dojo.some(searchFields, function(field) {
+                    var value = feature.attributes[field];
                     if (value && value.toUpperCase().indexOf(whereSearchText) >= 0) {
-                        features[i].foundFieldName = key;
-                        features[i].value = value;
-                        break;
+                        feature.foundFieldName = field;
+                        feature.value = value;
+                        return true;
                     }
-                }
+                    return false;
+                });
             }
 
             if (features.length === 1) {
