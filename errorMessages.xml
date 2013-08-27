@@ -38,5 +38,4 @@
     <createBuffer>Geometry for buffer is null in create buffer.</createBuffer>
     <noDataAvailable>Data not available for this particular location.</noDataAvailable>
     <fetchRoadInformation>An error occured while fetching road information.</fetchRoadInformation>
-    <exceedTimeout>Unable to search: timeout exceeded.</exceedTimeout>
 </Messages>

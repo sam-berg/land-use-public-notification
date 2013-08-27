@@ -86,20 +86,6 @@ function Locate() {
             FindTaskErrBack();
         });
 
-
-        setTimeout(function () {
-            if (flagForAddress) {
-                flagForAddress = false;
-                dojo.byId("imgSearchLoader").style.display = "none";
-                RemoveChildren(dojo.byId('tblAddressResults'));
-                CreateScrollbar(dojo.byId("divAddressScrollContainer"), dojo.byId("divAddressScrollContent"));
-                selectedPoint = null;
-                displayInfo = null;
-                map.infoWindow.hide();
-                LoctorErrBack("exceedTimeout", true);
-                return;
-            }
-        }, 10000);
         dojo.byId("imgSearchLoader").style.display = "block";
     }
     else {
