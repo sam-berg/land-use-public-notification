@@ -50,7 +50,6 @@ var occupantFields;         //Variable for storing Occupant related avery fields
 var averyFieldsCollection;  //Variable for storing configurable avery fields
 var csvFieldsCollection;    //Variable for storing configurable csv column fields
 var occupantName;           //Variable for getting word "Occupant" from config
-var findTask;                  //Find task object for querying feature layer
 var graphicLayerClicked = false;  //Flag for storing state of Graphics Layer Clicked
 var infoWindowTitle; //variable for displaying info window title
 
@@ -200,7 +199,6 @@ function Init() {
     rendererColor = responseObject.RendererColor;
     roadLineColor = responseObject.RoadLineColor;
 
-    var taxParcelFindURL = responseObject.TaxParcelQueryMap;
     taxParcelQueryURL = responseObject.TaxParcelPublishingLayer;
     roadCenterLinesLayerURL = responseObject.RoadCenterLines;
 
@@ -231,7 +229,6 @@ function Init() {
 
     geometryService = new esri.tasks.GeometryService(responseObject.GeometryService);
     qTask = new esri.tasks.QueryTask(taxParcelQueryURL);
-    findTask = new esri.tasks.FindTask(taxParcelFindURL);
     dojo.connect(map, "onLoad", function () {
         var zoomExtent;
         var extent = GetQuerystring('extent');

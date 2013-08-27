@@ -1,4 +1,4 @@
-﻿/*global dojo */
+/*global dojo */
 /** @license
  | Version 10.2
  | Copyright 2012 Esri
@@ -92,7 +92,6 @@ dojo.declare("js.config", null, {
     // OPERATIONAL DATA SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     // Map Services for operational layers
-    TaxParcelQueryMap: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelQuery/MapServer",
     TaxParcelPublishingLayer: "http://tryitlive.arcgis.com/arcgis/rest/services/TaxParcelQuery/MapServer/0",
     RoadCenterLines: "http://tryitlive.arcgis.com/arcgis/rest/services/RoadCenterlineQuery/MapServer/0",
 
@@ -100,7 +99,7 @@ dojo.declare("js.config", null, {
     // INFO-WINDOW SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
     //Title for content in the info-window.
-    InfoWindowTitle: "Site Address",
+    InfoWindowTitle: "Site Address,SITEADDRESS",
 
     // ------------------------------------------------------------------------------------------------------------------------
     // INFO-POPUP SETTINGS
@@ -188,7 +187,7 @@ dojo.declare("js.config", null, {
         Locators: [{
             DisplayText: "Address/Parcel",
             DefaultValue: "2830 W Hickory Grove Rd",
-            DisplayField: "Parcel Identification Number,Site Address"
+            DisplayField: "PARCELID,SITEADDRESS"
         }, {
             DisplayText: "Street/Road",
             DefaultValue: "Thedford Rd",
