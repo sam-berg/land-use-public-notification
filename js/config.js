@@ -201,7 +201,7 @@ dojo.declare("js.config", null, {
     // ------------------------------------------------------------------------------------------------------------------------
     // GEOMETRY SERVICE SETTINGS
     // ------------------------------------------------------------------------------------------------------------------------
-    // Set geometry service URL
+    // Set geometry service URL (This is an Esri provided service)
     GeometryService: "http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer",
 
     //Customn Data for Public Notification Application.
