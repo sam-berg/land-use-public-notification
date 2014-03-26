@@ -25,7 +25,10 @@ dojo.require("esri.tasks.find");
 dojo.require("esri.layers.FeatureLayer");
 dojo.require("dijit.TooltipDialog");
 dojo.require("js.config");
+dojo.require("esri.dijit.Measurement");
 
+var parcelClick;
+var measurement;
 var map;                    //ESRI map object
 var tempBufferLayer = 'tempBufferLayer';        //Graphics layer object for displaying buffered region
 var queryGraphicLayer = 'queryGraphicLayer';    //Graphics layer object for displaying queried features
@@ -79,6 +82,9 @@ var lastSearchTime; //variable for storing the time of last searched value
 
 //Function to initialize the map and read data from Configuration file
 function Init() {
+
+
+
     dojo.connect(window, "onresize", function () {
         if (map) {
             map.resize();
@@ -161,6 +167,7 @@ function Init() {
     esri.config.defaults.io.alwaysUseProxy = false;
     esri.config.defaults.io.timeout = 600000;
 
+
     var responseObject = new js.config();
 
     dojo.byId('imgApp').src = responseObject.ApplicationIcon;
@@ -228,8 +235,20 @@ function Init() {
     dojo.connect(dojo.byId('txtAddress'), "onblur", ReplaceDefaultText);
 
     geometryService = new esri.tasks.GeometryService(responseObject.GeometryService);
+
+    esri.config.defaults.geometryService = new esri.tasks.GeometryService(responseObject.GeometryService);
+
     qTask = new esri.tasks.QueryTask(taxParcelQueryURL);
     dojo.connect(map, "onLoad", function () {
+
+      //sbtest
+        var d = dojo.byId("measurementDiv");
+        measurement = new esri.dijit.Measurement({
+          map: map
+        }, d);
+        measurement.startup();
+
+
         var zoomExtent;
         var extent = GetQuerystring('extent');
         if (extent != "") {
@@ -313,7 +332,7 @@ function Init() {
         }
     });
 
-    dojo.connect(map, "onClick", ExecuteQueryTask);
+    parcelClick = dojo.connect(map, "onClick", ExecuteQueryTask);
     dojo.connect(map, 'onMouseOut', fireMapMouseUp);
     dojo.connect(map, "onExtentChange", function (evt) {
         map.infoWindow.hide();
@@ -322,6 +341,7 @@ function Init() {
             ShareLink(false);
         }
     });
+
 
     function fireMapMouseUp(e) {
         var oEvent = null;
@@ -378,6 +398,27 @@ function Init() {
     }
     dojo.connect(dojo.byId('btnSubmit'), "onclick", CreateBuffer);
 }
+
+
+function ShowMeasurementTools() {
+  if (dojo.byId("measurementPanel").style.display == "none") {
+    dojo.byId("measurementPanel").style.display = "block";
+    //dojo.connect(map, "onClick", ExecuteQueryTask);
+    dojo.disconnect(parcelClick);
+    measurement.startup();
+    measurement.on("measure-end", function (evt) {
+      //measurement.setTool(evt.activeTool, false);
+      //parcelClick = dojo.connect(map, "onClick", ExecuteQueryTask);
+    });
+  }
+  else {
+    dojo.byId("measurementPanel").style.display = "none";
+    parcelClick = dojo.connect(map, "onClick", ExecuteQueryTask);
+    measurement.clearResult();
+  }
+
+}
+
 
 //Get the parameters to buffer the parcel (or) road region(s)
 function GetValuesToBuffer(parcel) {
