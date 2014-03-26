@@ -1,0 +1,164 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html> 
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=7,IE=9" />
+    <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
+    on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"/>
+    <title>
+      Measure Tool 
+    </title>
+    <link rel="stylesheet" type="text/css" href="http://serverapi.arcgisonline.com/jsapi/arcgis/2.5/js/dojo/dijit/themes/claro/claro.css">
+    <style type="text/css">
+      html,body {
+        height:100%;
+        width:100%;
+        margin:0;
+      }
+      body {
+        background-color:#FFF;
+        overflow:hidden;
+        font-family:"Trebuchet MS";
+      }
+      #map {
+        border:solid 2px #808775;
+        -moz-border-radius:4px;
+        -webkit-border-radius:4px;
+        border-radius:4px;
+        margin:5px;
+        padding:0px;
+      }
+      #titlePane{
+        width:240px;
+      }
+      .claro .dijitTitlePaneTitle {
+        background: #808775;
+        font-weight:600;
+        border:solid 1px #29201A;
+      }
+      .claro .dijitTitlePaneTitleHover {
+        background:#808775;
+      }
+      .claro .dijitTitlePaneTitleActive {
+        background:#808775;
+      }
+      .claro .dijitTitlePaneContentOuter {
+        border-right: solid 2px #808775 !important;
+        border-bottom: solid 2px #808775 !important;
+        border-left: solid 2px #808775 !important;
+      }
+      </style>
+      <script type="text/javascript">
+        djConfig = {
+          parseOnLoad: true
+        };
+      </script>
+      <script type="text/javascript" src="http://serverapi.arcgisonline.com/jsapi/arcgis/?v=2.5"></script>
+
+    <script type="text/javascript">
+      dojo.require("dijit.layout.BorderContainer");
+      dojo.require("dijit.layout.ContentPane");
+      dojo.require("dijit.TitlePane");
+      dojo.require("dijit.form.CheckBox");
+
+      dojo.require("esri.map");
+      dojo.require("esri.dijit.Measurement");
+      dojo.require("esri.SnappingManager");
+      dojo.require("esri.dijit.Scalebar");
+      dojo.require("esri.layers.FeatureLayer");
+
+      var map;
+      var measurement;
+
+      function init() {
+
+        //This sample may require a proxy page to handle communications with the ArcGIS Server services. You will need to  
+        //replace the url below with the location of a proxy on your machine. See the 'Using the proxy page' help topic 
+        //for details on setting up a proxy page.
+        esri.config.defaults.io.proxyUrl = "/arcgisserver/apis/javascript/proxy/proxy.ashx";
+        esri.config.defaults.io.alwaysUseProxy = false;
+
+        //This service is for development and testing purposes only. We recommend that you create your own geometry service for use within your applications
+        esri.config.defaults.geometryService = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
+
+        var initialExtent = new esri.geometry.Extent({ "xmin": -9545482, "ymin": 4615382, "xmax": -9544248, "ymax": 4616059, "spatialReference": { "wkid": 102100 } });
+
+        map = new esri.Map("map", {
+          extent: initialExtent
+        });
+
+        dojo.connect(map, 'onLoad', function (map) {
+          //resize the map when the browser resizes
+          dojo.connect(dijit.byId('map'), 'resize', map, map.resize);
+        });
+
+        var basemap = new esri.layers.ArcGISTiledMapServiceLayer("http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer");
+        map.addLayer(basemap);
+
+        var sfs = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID,
+         new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID,
+         new dojo.Color([195, 176, 23]), 2), null);
+
+        var parcelsLayer = new esri.layers.FeatureLayer("http://sampleserver1.arcgisonline.com/ArcGIS/rest/services/Louisville/LOJIC_LandRecords_Louisville/MapServer/0", {
+          mode: esri.layers.FeatureLayer.MODE_ONDEMAND,
+          outFields: ["*"]
+        });
+        parcelsLayer.setRenderer(new esri.renderer.SimpleRenderer(sfs));
+
+        dojo.connect(map, "onLayersAddResult", function (results) {
+
+          //dojo.keys.copyKey maps to CTRL on windows and Cmd on Mac.
+          var snapManager = map.enableSnapping({ snapKey: dojo.keys.copyKey });
+
+          var layerInfos = [{ layer: parcelsLayer }];
+          snapManager.setLayerInfos(layerInfos);
+
+          createMeasure();
+
+        });
+
+        map.addLayers([parcelsLayer]);
+      }
+
+      //show map on load
+      dojo.addOnLoad(init);
+
+      function tglMeasurementOff() {
+        measurement.destroy();
+      }
+
+      function tglMeasurementOn() {
+        createMeasure();
+      }
+
+      function createMeasure() {
+        measurement = new esri.dijit.Measurement({
+          map: map
+        }, dojo.create('measure'));
+        dojo.place(measurement.domNode, dojo.byId('measurementDiv'));
+        measurement.startup();
+        measurement.setTool("distance", true);
+
+      }
+    </script>
+  </head>
+  
+  <body class="claro">
+    <div id="mainWindow" data-dojo-type="dijit.layout.BorderContainer" data-dojo-props="design:'headline',gutters:'false'"
+    style="width:100%; height:100%;">
+      <div id="map" data-dojo-type="dijit.layout.ContentPane" data-dojo-props="region:'center'">
+      	<button id="tglMeasurementOff" type="button" onclick="tglMeasurementOff();">toogleMeasurementOff</button>
+     	<button id="tglMeasurementOn" type="button" onclick="tglMeasurementOn();">toogleMeasurementOn</button>
+       
+       <div id="measurementDiv"></div> 
+    <!--     <div style="position:absolute; right:20px; top:10px; z-Index:999;">
+          <div id="titlePane" data-dojo-type="dijit.TitlePane" data-dojo-props="title:'Measurement', closable:'false', open:'false'">
+            <div id="+measurementDiv"></div>
+            <span style="font-size:smaller;padding:5px 5px;">Press <b>CTRL</b> to enable snapping.</span>
+          </div>
+        </div>-->
+      </div>
+    </div>
+  </body>
+</html>
