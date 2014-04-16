@@ -20,8 +20,8 @@
     -->
     <title>Public Notification</title>
     <link rel="shortcut icon" href="images/Favicon.ico" />
-    <link rel="stylesheet" type="text/css" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.5/js/dojo/dijit/themes/claro/claro.css" />
-    <link rel="stylesheet" type="text/css" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.5/js/esri/css/esri.css" />
+    <link rel="stylesheet" type="text/css" href="http://js.arcgis.com/3.8/js/dojo/dijit/themes/claro/claro.css" />
+    <link rel="stylesheet" type="text/css" href="http://js.arcgis.com/3.8/js/esri/css/esri.css" />
     <link rel="stylesheet" type="text/css" href="notification.css" />
     <script type="text/javascript">
       var dojoConfig = {
@@ -33,27 +33,56 @@
             ]
         };
     </script>
-    <script src="http://serverapi.arcgisonline.com/jsapi/arcgis/3.5" type="text/javascript">
+
+    <script src="http://js.arcgis.com/3.8/" type="text/javascript">
     </script>
     <script type="text/javascript" src="js/utils.js"></script>
+
     <script type="text/javascript" src="js/locator.js"></script>
     <script type="text/javascript" src="js/config.js"></script>
     <script src="js/modernizr-2.5.3.js" type="text/javascript"></script>
     <script type="text/javascript" src="js/baseMapGallery.js"></script>
     <script src="js/infoWindow.js" type="text/javascript"></script>
     <script src="js/homePage.js" type="text/javascript"></script>
+
+  <style>
+        #titlePane{
+        width:240px;
+      }
+      .dijitTitlePaneTitle {
+        background: #808775;
+        font-weight:600;
+        border:solid 1px #29201A;
+      }
+      .dijitTitlePaneTitleHover {
+        background:#808775;
+      }
+      .dijitTitlePaneTitleActive {
+        background:#808775;
+      }
+      .dijitTitlePaneContentOuter {
+        border-right: solid 2px #808775 !important;
+        border-bottom: solid 2px #808775 !important;
+        border-left: solid 2px #808775 !important;
+      }
+  </style>
 </head>
 <body class="claro">
     <div id="divMainContainer" style="width: 100%; height: 100%;">
         <div id="map" style="width: 100%; height: 100%;">
+          <div id="measurementPanel" style="display:none; background-color:white;color:black; position:absolute; right:20px; top:50px; z-Index:999;">
+          <div id="titlePane" data-dojo-type="dijit.TitlePane" data-dojo-props="title:'Measurement', closable:'false', open:'false'">
+            <div id="measurementDiv"></div>
+           </div>
+        </div>
         </div>
     </div>
     <div class="header_container">
-        <div class="headerBackground">
         </div>
         <div class="headerIcon">
             <img id="imgApp" class="imgApp" style="background-color: transparent;" />
         </div>
+        <div class="headerBackground">
         <div class="header">
             <table style="height: 100%;">
                 <tr valign="middle">
@@ -72,7 +101,7 @@
             <table style="height: 100%;">
                 <tr>
                      <td align="center" style="width: 40px;" valign="middle">
-                        <img src="images/Help.png" class="imgOptions" id="img1" title="Measure" onclick="alert('measure?');" />
+                        <img src="http://js.arcgis.com/3.8/js/esri/dijit/images/Measure_Distance16.png" class="imgOptions" id="img1" title="Measure" onclick="ShowMeasurementTools();" />
                     </td>
                     <td id="tdSearch" align="left" style="width: 40px;" valign="middle">
                         <img id="imgLocateAddress" src="images/Locate.png" class="imgOptions" title="Search" onclick="ShowLocateContainer();" />
@@ -399,5 +428,8 @@
             </tr>
         </table>
     </div>
+
+
+
 </body>
 </html>
